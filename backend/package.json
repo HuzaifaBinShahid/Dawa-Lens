@@ -1,0 +1,22 @@
+{
+  "name": "medicines-backend",
+  "version": "1.0.0",
+  "description": "Backend API for medicines database",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/scripts/seed.js"
+  },
+  "keywords": ["medicines", "mongodb", "api"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "mongoose": "^8.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
