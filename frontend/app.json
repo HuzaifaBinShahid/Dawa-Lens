@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "DawaLens",
+    "slug": "dawalens",
+    "version": "2.4.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "dawalens",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0160B8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dawalens.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#0160B8"
+      },
+      "package": "com.dawalens.app",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow DawaLens to access your camera to scan medicines."
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}
