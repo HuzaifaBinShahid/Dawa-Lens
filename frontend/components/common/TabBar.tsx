@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
-  withSpring,
+  withTiming,
   useSharedValue,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
@@ -54,16 +55,23 @@ function TabBarItem({
   isActive: boolean;
   onPress: () => void;
 }) {
-  const scale = useSharedValue(1);
+  const pressOpacity = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    opacity: pressOpacity.value,
   }));
 
   const handlePress = () => {
-    scale.value = withSpring(0.85, {}, () => {
-      scale.value = withSpring(1);
-    });
+    pressOpacity.value = withTiming(
+      0.55,
+      { duration: 90, easing: Easing.out(Easing.quad) },
+      () => {
+        pressOpacity.value = withTiming(1, {
+          duration: 180,
+          easing: Easing.inOut(Easing.quad),
+        });
+      }
+    );
     onPress();
   };
 

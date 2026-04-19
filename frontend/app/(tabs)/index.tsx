@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -6,8 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
-import HeroCard from '@/components/home/HeroCard';
-import SearchBar from '@/components/home/SearchBar';
+import ModuleTiles from '@/components/home/ModuleTiles';
 import QuickActions from '@/components/home/QuickActions';
 import HealthTipCard from '@/components/home/HealthTipCard';
 import DisclaimerFooter from '@/components/home/DisclaimerFooter';
@@ -18,7 +17,6 @@ import { Theme } from '@/constants/theme';
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
 
   const headerStyle = useAnimatedEntry(0, 'fadeSlideUp');
 
@@ -36,13 +34,6 @@ export default function HomeScreen() {
       onPress: () => router.push('/(tabs)/profile'),
     },
   ];
-
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    if (text.length > 2) {
-      router.push(`/medicine/1`);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -72,8 +63,11 @@ export default function HomeScreen() {
           <Ionicons name="notifications-outline" size={24} color={Colors.text} />
         </Animated.View>
 
-        <HeroCard onScanPress={() => router.push('/scan')} />
-        <SearchBar value={searchQuery} onChangeText={handleSearch} />
+        <ModuleTiles
+          onScanPress={() => router.push('/scan')}
+          onSearchPress={() => router.push('/search')}
+        />
+
         <QuickActions actions={quickActions} />
         <HealthTipCard text={healthTips[0].text} />
         <DisclaimerFooter />

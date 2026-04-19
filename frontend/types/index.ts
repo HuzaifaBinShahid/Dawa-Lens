@@ -1,20 +1,41 @@
-export type Medicine = {
-  id: string;
-  medicineName: string;
+export type Variant = {
+  form: string;
+  code: string | null;
+  size: string;
+  tp: string | null;
+  mrp: string | null;
+};
+
+export type Product = {
+  brand: string;
   manufacturer: string;
-  activeIngredient: string;
-  strength: string;
-  pros: string[];
-  cons: string[];
-  details: string;
-  ingredients: string[];
-  dosage: string;
-  usage: string;
-  warnings: string[];
-  category: string;
-  uses: string[];
-  sideEffects: string[];
-  isAuthentic: boolean;
+  variants: Variant[];
+};
+
+export type Medicine = {
+  _id: string;
+  drug_name: string;
+  category?: string;
+  content?: string;
+  forms: string[];
+  indications: string[];
+  dosage: Record<string, string>;
+  contraindications: string[];
+  precautions: string[];
+  interactions: string[];
+  side_effects: string[];
+  administration: string | null;
+  stability: string | null;
+  pregnancy: string | null;
+  lactation: string | null;
+  products: Product[];
+  _processed_at?: string;
+  _source?: string;
+};
+
+export type SearchResponse = {
+  best: Medicine | null;
+  alternates: Medicine[];
 };
 
 export type HistoryItem = {

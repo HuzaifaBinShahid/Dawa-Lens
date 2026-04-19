@@ -4,7 +4,6 @@ import {
   useAnimatedStyle,
   withTiming,
   withDelay,
-  withSpring,
   Easing,
 } from 'react-native-reanimated';
 
@@ -20,9 +19,7 @@ export function useAnimatedEntry(
   useEffect(() => {
     progress.value = withDelay(
       delay,
-      type === 'scale'
-        ? withSpring(1, { damping: 12, stiffness: 100 })
-        : withTiming(1, { duration, easing: Easing.out(Easing.cubic) })
+      withTiming(1, { duration, easing: Easing.out(Easing.cubic) })
     );
   }, []);
 
@@ -33,23 +30,25 @@ export function useAnimatedEntry(
       case 'slideUp':
         return {
           opacity: progress.value,
-          transform: [{ translateY: 30 * (1 - progress.value) }],
+          transform: [{ translateY: 24 * (1 - progress.value) }],
         };
       case 'slideLeft':
         return {
           opacity: progress.value,
-          transform: [{ translateX: 40 * (1 - progress.value) }],
+          transform: [{ translateX: 32 * (1 - progress.value) }],
         };
       case 'scale':
+        // Legacy 'scale' mode: the bouncy scale pop has been retired.
+        // Behaves as a gentle fade-slide so callers don't need to change.
         return {
           opacity: progress.value,
-          transform: [{ scale: progress.value }],
+          transform: [{ translateY: 12 * (1 - progress.value) }],
         };
       case 'fadeSlideUp':
       default:
         return {
           opacity: progress.value,
-          transform: [{ translateY: 20 * (1 - progress.value) }],
+          transform: [{ translateY: 16 * (1 - progress.value) }],
         };
     }
   });

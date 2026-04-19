@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0160B8"
+      "backgroundColor": "#005FB8"
     },
     "ios": {
       "supportsTablet": true,
@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
-        "backgroundColor": "#0160B8"
+        "backgroundColor": "#005FB8"
       },
       "package": "com.dawalens.app",
       "permissions": [

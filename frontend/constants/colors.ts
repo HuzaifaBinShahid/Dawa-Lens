@@ -1,18 +1,23 @@
 export const Colors = {
-  primary: '#0160B8',
-  primaryDark: '#014A8F',
-  primaryLight: '#E5EFF8',
+  primary: '#005FB8',
+  primaryDark: '#00498E',
+  primaryLight: '#E3EEFA',
   white: '#FFFFFF',
   black: '#000000',
   gray: '#64748B',
   grayLight: '#F1F5F9',
   grayBorder: '#E2E8F0',
-  warning: '#EA580C',
-  warningBg: '#FAF7F3',
+  // Orange has been retired from the palette. `warning` now reuses primary blue
+  // for non-critical emphasis (eyebrow labels, module accents). Truly urgent
+  // medical moments (SafetyAlert, contraindications) should import `danger`
+  // explicitly instead of `warning` — see components/medicine/SafetyAlert.tsx.
+  warning: '#005FB8',
+  warningBg: '#E3EEFA',
   disclaimerText: '#64748B',
   disclaimerBg: '#FBFCFD',
   success: '#16A34A',
   danger: '#DC2626',
+  dangerBg: '#FEE2E2',
   background: '#FFFFFF',
   cardBg: '#F8FAFC',
   text: '#1E293B',
@@ -20,9 +25,9 @@ export const Colors = {
   textMuted: '#94A3B8',
   overlay: 'rgba(0, 0, 0, 0.5)',
   transparent: 'transparent',
-  splashBg: '#0160B8',
+  splashBg: '#005FB8',
   inputBg: '#F8FAFC',
   inputBorder: '#CBD5E1',
   tabInactive: '#94A3B8',
-  scanBg: '#1A1A2E',
+  scanBg: '#0A1530',
 };

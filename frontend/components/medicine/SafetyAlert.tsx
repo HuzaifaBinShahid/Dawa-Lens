@@ -17,7 +17,7 @@ export default function SafetyAlert({ warnings, onViewAll }: SafetyAlertProps) {
   return (
     <Animated.View style={[styles.container, style]}>
       <View style={styles.header}>
-        <Ionicons name="warning" size={22} color={Colors.warning} />
+        <Ionicons name="warning" size={22} color={Colors.danger} />
         <Text style={styles.title}>Safety Alert</Text>
       </View>
       <Text style={styles.warningText}>{warnings[0]}</Text>
@@ -32,7 +32,7 @@ export default function SafetyAlert({ warnings, onViewAll }: SafetyAlertProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.warningBg,
+    backgroundColor: Colors.dangerBg,
     borderRadius: Theme.borderRadius.lg,
     padding: Theme.spacing.lg,
     marginBottom: Theme.spacing.xl,
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Theme.fontSize.lg,
     fontWeight: Theme.fontWeight.bold,
-    color: Colors.warning,
+    color: Colors.danger,
   },
   warningText: {
     fontSize: Theme.fontSize.sm,
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.md,
   },
   viewAllButton: {
-    backgroundColor: Colors.warning,
+    backgroundColor: Colors.danger,
     borderRadius: Theme.borderRadius.sm,
     paddingVertical: Theme.spacing.sm,
     paddingHorizontal: Theme.spacing.lg,

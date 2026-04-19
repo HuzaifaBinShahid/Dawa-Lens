@@ -7,8 +7,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
-  withSequence,
-  withSpring,
   Easing,
   runOnJS,
   interpolate,
@@ -19,7 +17,7 @@ import { Theme } from '@/constants/theme';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const logoScale = useSharedValue(0);
+  const logoTranslateY = useSharedValue(16);
   const logoOpacity = useSharedValue(0);
   const titleOpacity = useSharedValue(0);
   const titleTranslateY = useSharedValue(20);
@@ -35,9 +33,9 @@ export default function SplashScreen() {
   };
 
   useEffect(() => {
-    logoScale.value = withDelay(
+    logoTranslateY.value = withDelay(
       200,
-      withSpring(1, { damping: 10, stiffness: 80 })
+      withTiming(0, { duration: 700, easing: Easing.out(Easing.cubic) })
     );
     logoOpacity.value = withDelay(
       200,
@@ -49,7 +47,7 @@ export default function SplashScreen() {
     );
     titleTranslateY.value = withDelay(
       600,
-      withSpring(0, { damping: 12 })
+      withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) })
     );
     subtitleOpacity.value = withDelay(
       900,
@@ -83,7 +81,7 @@ export default function SplashScreen() {
 
   const logoAnimatedStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
-    transform: [{ scale: logoScale.value }],
+    transform: [{ translateY: logoTranslateY.value }],
   }));
 
   const titleAnimatedStyle = useAnimatedStyle(() => ({

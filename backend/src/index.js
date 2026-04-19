@@ -1,10 +1,13 @@
 require('dotenv').config();
+require('dns').setServers(['8.8.8.8', '1.1.1.1']);
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./db/connection');
-const Medicine = require('./models/Medicine');
+const medicinesRouter = require('./routes/medicines');
 
 const app = express();
-app.use(express.json());
+app.use(cors());
+app.use(express.json({ limit: '1mb' }));
 
 connectDB();
 
@@ -12,32 +15,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Medicines API is running' });
 });
 
-app.get('/api/medicines', async (req, res) => {
-  try {
-    const medicines = await Medicine.find().sort({ createdAt: -1 });
-    res.json(medicines);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+app.use('/api/medicines', medicinesRouter);
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
-app.post('/api/medicines', async (req, res) => {
-  try {
-    const medicine = await Medicine.create(req.body);
-    res.status(201).json(medicine);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.get('/api/medicines/:id', async (req, res) => {
-  try {
-    const medicine = await Medicine.findById(req.params.id);
-    if (!medicine) return res.status(404).json({ error: 'Medicine not found' });
-    res.json(medicine);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -22,6 +22,10 @@ export default function RootLayout() {
           options={{ animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
+          name="search"
+          options={{ animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
           name="medicine/[id]"
           options={{ animation: 'slide_from_right' }}
         />
