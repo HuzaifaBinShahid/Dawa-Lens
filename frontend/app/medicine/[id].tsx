@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +10,8 @@ import Loader from '@/components/common/Loader';
 import CommonButton from '@/components/common/CommonButton';
 import MedicineHeader from '@/components/medicine/MedicineHeader';
 import SafetyAlert from '@/components/medicine/SafetyAlert';
+import SafetyModal from '@/components/medicine/SafetyModal';
+import SectionTabs, { TabItem } from '@/components/medicine/SectionTabs';
 import InfoSection from '@/components/medicine/InfoSection';
 import DosageBlock from '@/components/medicine/DosageBlock';
 import ProductsList from '@/components/medicine/ProductsList';
@@ -17,11 +19,46 @@ import TrackIntake from '@/components/medicine/TrackIntake';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
 
+type SectionKey =
+  | 'overview'
+  | 'dosage'
+  | 'warnings'
+  | 'special'
+  | 'products';
+
 export default function MedicineDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading, error, refetch } = useMedicine(id);
   const [showUrdu, setShowUrdu] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionKey>('overview');
+  const [safetyModalOpen, setSafetyModalOpen] = useState(false);
   const translateStyle = useAnimatedEntry(100, 'fadeSlideUp');
+
+  const tabs = useMemo<TabItem<SectionKey>[]>(() => {
+    if (!data) return [];
+    const t: TabItem<SectionKey>[] = [{ key: 'overview', label: 'Overview' }];
+    if (Object.keys(data.dosage || {}).length > 0) {
+      t.push({ key: 'dosage', label: 'Dosage' });
+    }
+    const hasWarnings =
+      data.contraindications.length > 0 ||
+      data.precautions.length > 0 ||
+      data.interactions.length > 0 ||
+      data.side_effects.length > 0;
+    if (hasWarnings) t.push({ key: 'warnings', label: 'Warnings' });
+
+    const hasSpecial =
+      !!data.administration ||
+      !!data.pregnancy ||
+      !!data.lactation ||
+      !!data.stability;
+    if (hasSpecial) t.push({ key: 'special', label: 'Special Use' });
+
+    if (data.products && data.products.length > 0) {
+      t.push({ key: 'products', label: 'Products' });
+    }
+    return t;
+  }, [data]);
 
   if (loading) {
     return (
@@ -45,9 +82,10 @@ export default function MedicineDetailScreen() {
     );
   }
 
-  const safetySource =
-    data.contraindications.length > 0 ? data.contraindications : data.precautions;
+  const isContra = data.contraindications.length > 0;
+  const safetySource = isContra ? data.contraindications : data.precautions;
   const showSafetyAlert = safetySource.length > 0;
+  const safetyTitle = isContra ? 'Contraindications' : 'Precautions';
 
   return (
     <View style={styles.container}>
@@ -57,9 +95,11 @@ export default function MedicineDetailScreen() {
         rightIcon="share-social-outline"
         onRightPress={() => {}}
       />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        stickyHeaderIndices={[2]}
       >
         <Animated.View style={[styles.translateRow, translateStyle]}>
           <TouchableOpacity
@@ -73,7 +113,7 @@ export default function MedicineDetailScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={styles.content}>
+        <View style={styles.headerWrap}>
           <MedicineHeader
             drugName={data.drug_name}
             category={data.category}
@@ -84,71 +124,104 @@ export default function MedicineDetailScreen() {
           {showSafetyAlert && (
             <SafetyAlert
               warnings={safetySource}
-              onViewAll={() =>
-                Alert.alert(
-                  data.contraindications.length > 0 ? 'Contraindications' : 'Precautions',
-                  safetySource.join('\n\n')
-                )
-              }
+              onViewAll={() => setSafetyModalOpen(true)}
             />
           )}
+        </View>
 
-          {data.indications.length > 0 && (
-            <InfoSection
-              title="Uses"
-              items={data.indications}
-              icon="checkmark-circle"
-              iconColor={Colors.primary}
-              delay={450}
-            />
-          )}
+        <View style={styles.stickyTabWrap}>
+          <SectionTabs
+            tabs={tabs}
+            active={activeSection}
+            onChange={setActiveSection}
+          />
+        </View>
 
-          <DosageBlock dosage={data.dosage} delay={500} />
-
-          {data.precautions.length > 0 && data.contraindications.length > 0 && (
-            <InfoSection
-              title="Precautions"
-              items={data.precautions}
-              icon="shield-checkmark"
-              iconColor={Colors.warning}
-              delay={550}
-            />
-          )}
-
-          {data.interactions.length > 0 && (
-            <InfoSection
-              title="Drug Interactions"
-              items={data.interactions}
-              icon="swap-horizontal"
-              iconColor={Colors.warning}
-              delay={600}
-            />
+        <View style={styles.content}>
+          {activeSection === 'overview' && (
+            <View>
+              {data.indications.length > 0 ? (
+                <InfoSection
+                  title="Uses"
+                  items={data.indications}
+                  icon="checkmark-circle"
+                  iconColor={Colors.primary}
+                  delay={0}
+                />
+              ) : (
+                <EmptyBlock
+                  icon="information-circle-outline"
+                  text="No overview details available for this medicine."
+                />
+              )}
+            </View>
           )}
 
-          {data.side_effects.length > 0 && (
-            <InfoSection
-              title="Side Effects"
-              items={data.side_effects}
-              icon="alert-circle"
-              iconColor={Colors.warning}
-              delay={650}
-            />
+          {activeSection === 'dosage' && (
+            <DosageBlock dosage={data.dosage} delay={0} />
           )}
 
-          {!!data.administration && (
-            <InfoBlock title="Administration" text={data.administration} delay={680} />
-          )}
-          {!!data.pregnancy && (
-            <InfoBlock title="Pregnancy" text={data.pregnancy} delay={700} />
-          )}
-          {!!data.lactation && (
-            <InfoBlock title="Lactation" text={data.lactation} delay={720} />
-          )}
-          {!!data.stability && (
-            <InfoBlock title="Stability" text={data.stability} delay={740} />
+          {activeSection === 'warnings' && (
+            <View>
+              {data.contraindications.length > 0 && (
+                <InfoSection
+                  title="Contraindications"
+                  items={data.contraindications}
+                  icon="close-circle"
+                  iconColor={Colors.danger}
+                  delay={0}
+                />
+              )}
+              {data.precautions.length > 0 && (
+                <InfoSection
+                  title="Precautions"
+                  items={data.precautions}
+                  icon="shield-checkmark"
+                  iconColor={Colors.warning}
+                  delay={60}
+                />
+              )}
+              {data.interactions.length > 0 && (
+                <InfoSection
+                  title="Drug Interactions"
+                  items={data.interactions}
+                  icon="swap-horizontal"
+                  iconColor={Colors.warning}
+                  delay={120}
+                />
+              )}
+              {data.side_effects.length > 0 && (
+                <InfoSection
+                  title="Side Effects"
+                  items={data.side_effects}
+                  icon="alert-circle"
+                  iconColor={Colors.warning}
+                  delay={180}
+                />
+              )}
+            </View>
           )}
 
-          <ProductsList products={data.products} delay={780} />
+          {activeSection === 'special' && (
+            <View>
+              {!!data.administration && (
+                <InfoBlock title="Administration" text={data.administration} delay={0} />
+              )}
+              {!!data.pregnancy && (
+                <InfoBlock title="Pregnancy" text={data.pregnancy} delay={60} />
+              )}
+              {!!data.lactation && (
+                <InfoBlock title="Lactation" text={data.lactation} delay={120} />
+              )}
+              {!!data.stability && (
+                <InfoBlock title="Stability" text={data.stability} delay={180} />
+              )}
+            </View>
+          )}
+
+          {activeSection === 'products' && (
+            <ProductsList products={data.products} delay={0} />
+          )}
 
           <TrackIntake
             onAddToHistory={() =>
@@ -157,6 +230,13 @@ export default function MedicineDetailScreen() {
           />
         </View>
       </ScrollView>
+
+      <SafetyModal
+        visible={safetyModalOpen}
+        title={safetyTitle}
+        items={safetySource}
+        onClose={() => setSafetyModalOpen(false)}
+      />
     </View>
   );
 }
@@ -176,6 +256,14 @@ function InfoBlock({
       <Text style={styles.infoBlockTitle}>{title}</Text>
       <Text style={styles.infoBlockText}>{text}</Text>
     </Animated.View>
+  );
+}
+
+function EmptyBlock({ icon, text }: { icon: any; text: string }) {
+  return (
+    <View style={styles.emptyBlock}>
+      <Text style={styles.emptyText}>{text}</Text>
+    </View>
   );
 }
 
@@ -203,8 +291,17 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: Theme.fontWeight.medium,
   },
+  headerWrap: {
+    paddingHorizontal: Theme.spacing.lg,
+  },
+  stickyTabWrap: {
+    backgroundColor: Colors.white,
+    paddingTop: Theme.spacing.sm,
+    borderBottomWidth: 0,
+  },
   content: {
     paddingHorizontal: Theme.spacing.lg,
+    paddingTop: Theme.spacing.lg,
   },
   errorBox: {
     flex: 1,
@@ -244,5 +341,16 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.md,
     color: Colors.text,
     lineHeight: 20,
+  },
+  emptyBlock: {
+    padding: Theme.spacing.xl,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Theme.borderRadius.md,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: Theme.fontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });
