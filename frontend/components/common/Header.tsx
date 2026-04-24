@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 type HeaderProps = {
   title: string;
@@ -27,13 +28,18 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useAppSettings();
+
+  const iconColor = transparent ? Colors.white : palette.text;
 
   return (
     <View
       style={[
         styles.container,
-        { paddingTop: insets.top + Theme.spacing.sm },
-        transparent && styles.transparent,
+        {
+          paddingTop: insets.top + Theme.spacing.sm,
+          backgroundColor: transparent ? 'transparent' : palette.white,
+        },
       ]}
     >
       <View style={styles.left}>
@@ -42,18 +48,14 @@ export default function Header({
             onPress={onLeftPress || (() => router.back())}
             style={styles.iconButton}
           >
-            <Ionicons
-              name={leftIcon || 'arrow-back'}
-              size={24}
-              color={transparent ? Colors.white : Colors.text}
-            />
+            <Ionicons name={leftIcon || 'arrow-back'} size={24} color={iconColor} />
           </TouchableOpacity>
         )}
       </View>
       <Text
         style={[
           styles.title,
-          transparent && styles.titleWhite,
+          { color: transparent ? Colors.white : palette.text },
         ]}
         numberOfLines={1}
       >
@@ -62,11 +64,7 @@ export default function Header({
       <View style={styles.right}>
         {rightIcon && (
           <TouchableOpacity onPress={onRightPress} style={styles.iconButton}>
-            <Ionicons
-              name={rightIcon}
-              size={24}
-              color={transparent ? Colors.white : Colors.text}
-            />
+            <Ionicons name={rightIcon} size={24} color={iconColor} />
           </TouchableOpacity>
         )}
       </View>
@@ -81,10 +79,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.lg,
     paddingBottom: Theme.spacing.md,
-    backgroundColor: Colors.white,
-  },
-  transparent: {
-    backgroundColor: Colors.transparent,
   },
   left: {
     width: 40,
@@ -99,10 +93,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: Theme.fontSize.xl,
     fontWeight: Theme.fontWeight.bold,
-    color: Colors.text,
-  },
-  titleWhite: {
-    color: Colors.white,
   },
   iconButton: {
     padding: Theme.spacing.xs,

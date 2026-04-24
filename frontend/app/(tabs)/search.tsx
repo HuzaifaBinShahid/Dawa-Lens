@@ -17,12 +17,13 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
 import { useMedicineSearch } from '@/hooks/useMedicineSearch';
 import { Medicine } from '@/types';
+import { Api } from '@/services/api';
 import { RecentSearches, RecentSearch } from '@/services/recentSearches';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
-const MAX_BRAND_TAGS = 3;
-const MAX_RELATED_BRANDS = 5;
+const MAX_RELATED_BRANDS = 3;
 
 const dedupedBrandNames = (m: Medicine): string[] => {
   if (!m.products) return [];
@@ -39,22 +40,22 @@ const dedupedBrandNames = (m: Medicine): string[] => {
   return out;
 };
 
-const getBrandTags = (m: Medicine) =>
-  dedupedBrandNames(m).slice(0, MAX_BRAND_TAGS);
+type Resolved = {
+  primary: string;
+  salt: string;
+  related: string[];
+  matchedByBrand: boolean;
+};
 
-type MatchMode =
-  | { kind: 'brand'; matched: string; related: string[] }
-  | { kind: 'salt'; brands: string[] };
-
-const resolveMatch = (m: Medicine, query: string): MatchMode => {
+const resolveMatch = (m: Medicine, query: string): Resolved => {
   const q = query.toLowerCase().trim();
-  const salt = (m.drug_name || '').toLowerCase();
+  const salt = m.drug_name || '';
   const allBrands = dedupedBrandNames(m);
 
-  const saltMatches =
-    !!q && (salt === q || salt.startsWith(q) || salt.includes(q));
+  let primary: string | null = null;
+  let matchedByBrand = false;
 
-  if (q) {
+  if (q && allBrands.length > 0) {
     const exact = allBrands.find((b) => b.toLowerCase() === q);
     const prefix = !exact
       ? allBrands.find((b) => b.toLowerCase().startsWith(q))
@@ -63,22 +64,28 @@ const resolveMatch = (m: Medicine, query: string): MatchMode => {
       ? allBrands.find((b) => b.toLowerCase().includes(q))
       : undefined;
     const matched = exact || prefix || contains;
-
-    if (matched && !(saltMatches && salt.startsWith(q))) {
-      const related = allBrands
-        .filter((b) => b.toLowerCase() !== matched.toLowerCase())
-        .slice(0, MAX_RELATED_BRANDS);
-      return { kind: 'brand', matched, related };
+    if (matched) {
+      primary = matched;
+      matchedByBrand = true;
     }
   }
 
-  return { kind: 'salt', brands: allBrands.slice(0, MAX_BRAND_TAGS) };
+  if (!primary) {
+    primary = allBrands[0] || salt;
+  }
+
+  const related = allBrands
+    .filter((b) => b.toLowerCase() !== (primary || '').toLowerCase())
+    .slice(0, MAX_RELATED_BRANDS);
+
+  return { primary, salt, related, matchedByBrand };
 };
 
 export default function SearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
+  const { t, palette } = useAppSettings();
   const [query, setQuery] = useState('');
   const [recents, setRecents] = useState<RecentSearch[]>([]);
   const { results, similar, loading, error } = useMedicineSearch(query);
@@ -100,6 +107,13 @@ export default function SearchScreen() {
 
   const handleSelect = (m: Medicine) => {
     commitQuery(query);
+    const match = resolveMatch(m, query.trim());
+    Api.logHistory({
+      type: 'search',
+      medicineId: m._id,
+      query: query.trim() || null,
+      matchedBrand: match.matchedByBrand ? match.primary : null,
+    }).catch(() => {});
     Keyboard.dismiss();
     router.push(`/medicine/${m._id}`);
   };
@@ -126,34 +140,50 @@ export default function SearchScreen() {
     !loading && !error && results.length === 0 && similar.length === 0 && trimmed.length >= 2;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, backgroundColor: palette.background },
+      ]}
+    >
       <StatusBar style="dark" />
 
       <Animated.View style={[styles.header, headerStyle]}>
         <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
+          onPress={() => router.replace('/(tabs)')}
+          style={[styles.backBtn, { borderColor: palette.grayBorder }]}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
+          <Ionicons name="arrow-back" size={22} color={palette.text} />
         </TouchableOpacity>
         <View style={styles.titleBlock}>
-          <Text style={styles.eyebrow}>MODULE — 02</Text>
-          <Text style={styles.title}>Search</Text>
+          <Text style={styles.eyebrow}>{t('search.module')}</Text>
+          <Text style={[styles.title, { color: palette.text }]}>
+            {t('search.title')}
+          </Text>
         </View>
         <View style={styles.accentDot} />
       </Animated.View>
 
-      <Animated.View style={[styles.inputCard, inputCardStyle]}>
-        <Ionicons name="search" size={18} color={Colors.text} />
+      <Animated.View
+        style={[
+          styles.inputCard,
+          {
+            backgroundColor: palette.white,
+            borderColor: palette.text,
+          },
+          inputCardStyle,
+        ]}
+      >
+        <Ionicons name="search" size={18} color={palette.text} />
         <TextInput
           ref={inputRef}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSubmit}
-          placeholder="Salt or brand — e.g. Paracetamol"
-          placeholderTextColor={Colors.textMuted}
-          style={styles.input}
+          placeholder={t('search.placeholder')}
+          placeholderTextColor={palette.textMuted}
+          style={[styles.input, { color: palette.text }]}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
@@ -173,15 +203,17 @@ export default function SearchScreen() {
             contentContainerStyle={styles.scrollInner}
           >
             <View style={styles.sectionHead}>
-              <View style={styles.rule} />
-              <Text style={styles.sectionLabel}>PREVIOUS SEARCHES</Text>
+              <View style={[styles.rule, { backgroundColor: palette.text }]} />
+              <Text style={[styles.sectionLabel, { color: palette.text }]}>
+                {t('search.previous')}
+              </Text>
               {recents.length > 0 && (
                 <TouchableOpacity
                   onPress={handleClearRecents}
                   hitSlop={8}
                   style={styles.clearAllBtn}
                 >
-                  <Text style={styles.clearAllText}>Clear</Text>
+                  <Text style={styles.clearAllText}>{t('search.clear')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -195,27 +227,39 @@ export default function SearchScreen() {
                     style={styles.recentRowWrap}
                   >
                     <TouchableOpacity
-                      style={styles.recentRow}
+                      style={[
+                        styles.recentRow,
+                        {
+                          backgroundColor: palette.white,
+                          borderColor: palette.grayBorder,
+                        },
+                      ]}
                       onPress={() => setQuery(r.query)}
                       activeOpacity={0.7}
                     >
                       <Ionicons
                         name="time-outline"
                         size={16}
-                        color={Colors.textMuted}
+                        color={palette.textMuted}
                       />
-                      <Text style={styles.recentText} numberOfLines={1}>
+                      <Text
+                        style={[styles.recentText, { color: palette.text }]}
+                        numberOfLines={1}
+                      >
                         {r.query}
                       </Text>
                       <TouchableOpacity
                         onPress={() => handleRemoveRecent(r.query)}
                         hitSlop={10}
-                        style={styles.recentDismiss}
+                        style={[
+                          styles.recentDismiss,
+                          { backgroundColor: palette.cardBg },
+                        ]}
                       >
                         <Ionicons
                           name="close"
                           size={14}
-                          color={Colors.textMuted}
+                          color={palette.textMuted}
                         />
                       </TouchableOpacity>
                     </TouchableOpacity>
@@ -223,13 +267,24 @@ export default function SearchScreen() {
                 ))}
               </View>
             ) : (
-              <View style={styles.emptyRecents}>
-                <Text style={styles.emptyRecentsTitle}>
-                  Your searches will appear here
+              <View
+                style={[
+                  styles.emptyRecents,
+                  { borderColor: palette.grayBorder },
+                ]}
+              >
+                <Text
+                  style={[styles.emptyRecentsTitle, { color: palette.text }]}
+                >
+                  {t('search.empty.title')}
                 </Text>
-                <Text style={styles.emptyRecentsBody}>
-                  Once you look up a medicine, we'll keep the last few handy
-                  so you can jump back in with one tap.
+                <Text
+                  style={[
+                    styles.emptyRecentsBody,
+                    { color: palette.textSecondary },
+                  ]}
+                >
+                  {t('search.empty.body')}
                 </Text>
               </View>
             )}
@@ -239,7 +294,9 @@ export default function SearchScreen() {
         {!showEmptyState && loading && (
           <View style={styles.state}>
             <ActivityIndicator color={Colors.primary} />
-            <Text style={styles.stateText}>Looking up “{trimmed}”…</Text>
+            <Text style={[styles.stateText, { color: palette.textSecondary }]}>
+              {t('search.lookup')} "{trimmed}"…
+            </Text>
           </View>
         )}
 
@@ -261,18 +318,19 @@ export default function SearchScreen() {
             entering={FadeIn.duration(250)}
             style={styles.noResults}
           >
-            <Text style={styles.noResultsTitle}>No matching medicine</Text>
-            <Text style={styles.noResultsBody}>
-              We couldn't find a salt or brand matching “{trimmed}”. Check the
-              spelling, or try the scanner — it reads directly from packaging.
+            <Text style={[styles.noResultsTitle, { color: palette.text }]}>
+              {t('search.noResults.title')}
+            </Text>
+            <Text style={[styles.noResultsBody, { color: palette.textSecondary }]}>
+              {t('search.noResults.body')}
             </Text>
             <TouchableOpacity
               style={styles.scanFallback}
-              onPress={() => router.replace('/scan')}
+              onPress={() => router.replace('/(tabs)')}
               activeOpacity={0.85}
             >
               <Ionicons name="scan" size={16} color={Colors.white} />
-              <Text style={styles.scanFallbackText}>Open scanner</Text>
+              <Text style={styles.scanFallbackText}>{t('search.openScanner')}</Text>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -285,22 +343,22 @@ export default function SearchScreen() {
           >
             {hasDirect && (
               <Text style={styles.resultsCount}>
-                {results.length} MATCH{results.length === 1 ? '' : 'ES'}
+                {results.length}{' '}
+                {results.length === 1 ? t('search.match') : t('search.matches')}
               </Text>
             )}
 
             {hasSimilarOnly && (
               <View style={styles.similarHeader}>
-                <Text style={styles.noMatchInline}>
-                  No exact match for “{trimmed}”
+                <Text style={[styles.noMatchInline, { color: palette.text }]}>
+                  {t('search.noExact')} "{trimmed}"
                 </Text>
-                <Text style={styles.similarLabel}>SIMILAR SALTS</Text>
+                <Text style={styles.similarLabel}>{t('home.similarSalts')}</Text>
               </View>
             )}
 
             {(hasDirect ? results : similar).map((m, i) => {
               const match = resolveMatch(m, trimmed);
-              const isBrand = match.kind === 'brand';
               return (
                 <Animated.View
                   key={m._id}
@@ -311,7 +369,11 @@ export default function SearchScreen() {
                   <TouchableOpacity
                     style={[
                       styles.resultCard,
-                      isBrand && styles.resultCardBrand,
+                      {
+                        backgroundColor: palette.white,
+                        borderColor: palette.grayBorder,
+                      },
+                      match.matchedByBrand && styles.resultCardBrand,
                     ]}
                     onPress={() => handleSelect(m)}
                     activeOpacity={0.85}
@@ -319,13 +381,18 @@ export default function SearchScreen() {
                     <View
                       style={[
                         styles.resultIcon,
-                        isBrand && styles.resultIconBrand,
+                        { backgroundColor: palette.primaryLight },
+                        match.matchedByBrand && styles.resultIconBrand,
                       ]}
                     >
                       <Ionicons
-                        name={isBrand ? 'medkit' : 'flask-outline'}
+                        name="medkit"
                         size={20}
-                        color={isBrand ? Colors.warning : Colors.primary}
+                        color={
+                          match.matchedByBrand
+                            ? Colors.warning
+                            : Colors.primary
+                        }
                       />
                     </View>
                     <View style={styles.resultBody}>
@@ -334,56 +401,57 @@ export default function SearchScreen() {
                           {m.category.toUpperCase()}
                         </Text>
                       )}
-                      {match.kind === 'brand' ? (
-                        <>
-                          <Text style={styles.resultName} numberOfLines={1}>
-                            {match.matched}
+                      <Text
+                        style={[styles.resultName, { color: palette.text }]}
+                        numberOfLines={1}
+                      >
+                        {match.primary}
+                      </Text>
+                      <Text style={styles.containsLine} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.containsLabel,
+                            { color: palette.textSecondary },
+                          ]}
+                        >
+                          {t('search.contains')}{' '}
+                        </Text>
+                        <Text style={styles.containsSalt}>{match.salt}</Text>
+                      </Text>
+                      {match.related.length > 0 && (
+                        <View style={styles.brandRow}>
+                          <Text
+                            style={[
+                              styles.brandLabel,
+                              { color: palette.textSecondary },
+                            ]}
+                          >
+                            {t('search.alsoAs')}
                           </Text>
-                          <Text style={styles.containsLine} numberOfLines={1}>
-                            <Text style={styles.containsLabel}>Contains </Text>
-                            <Text style={styles.containsSalt}>
-                              {m.drug_name}
-                            </Text>
-                          </Text>
-                          {match.related.length > 0 && (
-                            <View style={styles.brandRow}>
-                              <Text style={styles.brandLabel}>Also as:</Text>
-                              <View style={styles.brandTags}>
-                                {match.related.map((b) => (
-                                  <View key={b} style={styles.brandTag}>
-                                    <Text style={styles.brandTagText}>
-                                      {b}
-                                    </Text>
-                                  </View>
-                                ))}
+                          <View style={styles.brandTags}>
+                            {match.related.map((b) => (
+                              <View
+                                key={b}
+                                style={[
+                                  styles.brandTag,
+                                  {
+                                    backgroundColor: palette.cardBg,
+                                    borderColor: palette.grayBorder,
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.brandTagText,
+                                    { color: palette.text },
+                                  ]}
+                                >
+                                  {b}
+                                </Text>
                               </View>
-                            </View>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <Text style={styles.resultName} numberOfLines={1}>
-                            {m.drug_name}
-                          </Text>
-                          {match.brands.length > 0 ? (
-                            <View style={styles.brandRow}>
-                              <Text style={styles.brandLabel}>Brands:</Text>
-                              <View style={styles.brandTags}>
-                                {match.brands.map((b) => (
-                                  <View key={b} style={styles.brandTag}>
-                                    <Text style={styles.brandTagText}>
-                                      {b}
-                                    </Text>
-                                  </View>
-                                ))}
-                              </View>
-                            </View>
-                          ) : m.content ? (
-                            <Text style={styles.resultMeta} numberOfLines={2}>
-                              {m.content}
-                            </Text>
-                          ) : null}
-                        </>
+                            ))}
+                          </View>
+                        </View>
                       )}
                     </View>
                     <View style={styles.resultChevron}>
@@ -407,7 +475,6 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',

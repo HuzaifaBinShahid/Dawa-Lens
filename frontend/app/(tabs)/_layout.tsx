@@ -2,19 +2,16 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Slot, usePathname, useRouter } from 'expo-router';
 import TabBar from '@/components/common/TabBar';
-import { Colors } from '@/constants/colors';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 export default function TabsLayout() {
   const pathname = usePathname();
   const router = useRouter();
+  const { palette } = useAppSettings();
 
   const currentRoute = pathname === '/' ? 'index' : pathname.replace('/', '');
 
   const handleTabPress = (name: string) => {
-    if (name === 'scan') {
-      router.push('/scan');
-      return;
-    }
     if (name === 'index') {
       router.replace('/(tabs)');
     } else {
@@ -23,7 +20,7 @@ export default function TabsLayout() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.content}>
         <Slot />
       </View>
@@ -35,7 +32,6 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -16,8 +16,10 @@ import InfoSection from '@/components/medicine/InfoSection';
 import DosageBlock from '@/components/medicine/DosageBlock';
 import ProductsList from '@/components/medicine/ProductsList';
 import TrackIntake from '@/components/medicine/TrackIntake';
+import { Api } from '@/services/api';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 type SectionKey =
   | 'overview'
@@ -29,54 +31,104 @@ type SectionKey =
 export default function MedicineDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading, error, refetch } = useMedicine(id);
-  const [showUrdu, setShowUrdu] = useState(false);
+  const { t, palette, locale } = useAppSettings();
+  const [showUrdu, setShowUrdu] = useState(locale === 'ur');
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
   const [safetyModalOpen, setSafetyModalOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const translateStyle = useAnimatedEntry(100, 'fadeSlideUp');
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    Api.getSaved()
+      .then((items) => {
+        if (cancelled) return;
+        const match = items.some((s) => {
+          const med = s.medicineId;
+          const mid = typeof med === 'object' && med ? (med as any)._id : med;
+          return mid === id;
+        });
+        setIsSaved(match);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const toggleSave = async () => {
+    if (!id || saveBusy) return;
+    setSaveBusy(true);
+    const next = !isSaved;
+    setIsSaved(next);
+    try {
+      if (next) {
+        await Api.saveMedicine(id);
+      } else {
+        await Api.unsaveMedicine(id);
+      }
+    } catch {
+      setIsSaved(!next);
+    } finally {
+      setSaveBusy(false);
+    }
+  };
 
   const tabs = useMemo<TabItem<SectionKey>[]>(() => {
     if (!data) return [];
-    const t: TabItem<SectionKey>[] = [{ key: 'overview', label: 'Overview' }];
+    const list: TabItem<SectionKey>[] = [
+      { key: 'overview', label: t('medicine.tab.overview') },
+    ];
     if (Object.keys(data.dosage || {}).length > 0) {
-      t.push({ key: 'dosage', label: 'Dosage' });
+      list.push({ key: 'dosage', label: t('medicine.tab.dosage') });
     }
     const hasWarnings =
       data.contraindications.length > 0 ||
       data.precautions.length > 0 ||
       data.interactions.length > 0 ||
       data.side_effects.length > 0;
-    if (hasWarnings) t.push({ key: 'warnings', label: 'Warnings' });
+    if (hasWarnings) list.push({ key: 'warnings', label: t('medicine.tab.warnings') });
 
     const hasSpecial =
       !!data.administration ||
       !!data.pregnancy ||
       !!data.lactation ||
       !!data.stability;
-    if (hasSpecial) t.push({ key: 'special', label: 'Special Use' });
+    if (hasSpecial) list.push({ key: 'special', label: t('medicine.tab.special') });
 
     if (data.products && data.products.length > 0) {
-      t.push({ key: 'products', label: 'Products' });
+      list.push({ key: 'products', label: t('medicine.tab.products') });
     }
-    return t;
-  }, [data]);
+    return list;
+  }, [data, t]);
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header title="Medicine Details" />
-        <Loader fullScreen message="Loading medicine..." />
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <Header title={t('medicine.title')} />
+        <Loader fullScreen message={t('medicine.loading')} />
       </View>
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.container}>
-        <Header title="Medicine Details" />
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <Header title={t('medicine.title')} />
         <View style={styles.errorBox}>
-          <Text style={styles.errorTitle}>Unable to load</Text>
-          <Text style={styles.errorText}>{error || 'Medicine not found.'}</Text>
-          <CommonButton title="Retry" onPress={refetch} style={styles.retryBtn} />
+          <Text style={[styles.errorTitle, { color: palette.text }]}>
+            {t('medicine.error.title')}
+          </Text>
+          <Text style={[styles.errorText, { color: palette.textSecondary }]}>
+            {error || t('medicine.error.body')}
+          </Text>
+          <CommonButton
+            title={t('medicine.retry')}
+            onPress={refetch}
+            style={styles.retryBtn}
+          />
         </View>
       </View>
     );
@@ -88,12 +140,12 @@ export default function MedicineDetailScreen() {
   const safetyTitle = isContra ? 'Contraindications' : 'Precautions';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <StatusBar style="dark" />
       <Header
-        title="Medicine Details"
-        rightIcon="share-social-outline"
-        onRightPress={() => {}}
+        title={t('medicine.title')}
+        rightIcon={isSaved ? 'bookmark' : 'bookmark-outline'}
+        onRightPress={toggleSave}
       />
 
       <ScrollView
@@ -108,7 +160,7 @@ export default function MedicineDetailScreen() {
             activeOpacity={0.7}
           >
             <Text style={styles.translateText}>
-              {showUrdu ? 'Translate to English' : 'Translate to Urdu'}
+              {showUrdu ? t('medicine.translate.toEnglish') : t('medicine.translate.toUrdu')}
             </Text>
           </TouchableOpacity>
         </Animated.View>

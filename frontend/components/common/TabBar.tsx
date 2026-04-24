@@ -10,34 +10,39 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 type TabItem = {
   name: string;
-  label: string;
+  labelKey: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconFocused: keyof typeof Ionicons.glyphMap;
 };
 
 const tabs: TabItem[] = [
-  { name: 'index', label: 'Home', icon: 'home-outline', iconFocused: 'home' },
+  {
+    name: 'index',
+    labelKey: 'tab.scan',
+    icon: 'camera-outline',
+    iconFocused: 'camera',
+  },
+  {
+    name: 'search',
+    labelKey: 'tab.search',
+    icon: 'search-outline',
+    iconFocused: 'search',
+  },
   {
     name: 'history',
-    label: 'History',
+    labelKey: 'tab.history',
     icon: 'time-outline',
     iconFocused: 'time',
   },
-  { name: 'scan', label: 'Scan', icon: 'camera-outline', iconFocused: 'camera' },
   {
     name: 'settings',
-    label: 'Settings',
+    labelKey: 'tab.settings',
     icon: 'settings-outline',
     iconFocused: 'settings',
-  },
-  {
-    name: 'profile',
-    label: 'Profile',
-    icon: 'person-outline',
-    iconFocused: 'person',
   },
 ];
 
@@ -50,12 +55,15 @@ function TabBarItem({
   tab,
   isActive,
   onPress,
+  label,
 }: {
   tab: TabItem;
   isActive: boolean;
   onPress: () => void;
+  label: string;
 }) {
   const pressOpacity = useSharedValue(1);
+  const { palette } = useAppSettings();
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: pressOpacity.value,
@@ -75,20 +83,6 @@ function TabBarItem({
     onPress();
   };
 
-  if (tab.name === 'scan') {
-    return (
-      <TouchableOpacity
-        style={styles.scanTab}
-        onPress={handlePress}
-        activeOpacity={0.8}
-      >
-        <Animated.View style={[styles.scanButton, animatedStyle]}>
-          <Ionicons name="camera" size={26} color={Colors.white} />
-        </Animated.View>
-      </TouchableOpacity>
-    );
-  }
-
   return (
     <TouchableOpacity
       style={styles.tab}
@@ -96,18 +90,21 @@ function TabBarItem({
       activeOpacity={0.7}
     >
       <Animated.View style={[styles.tabContent, animatedStyle]}>
+        {isActive && <View style={styles.activeIndicator} />}
         <Ionicons
           name={isActive ? tab.iconFocused : tab.icon}
           size={22}
-          color={isActive ? Colors.primary : Colors.tabInactive}
+          color={isActive ? Colors.primary : palette.tabInactive}
         />
         <Text
           style={[
             styles.tabLabel,
+            { color: palette.tabInactive },
             isActive && styles.tabLabelActive,
           ]}
+          numberOfLines={1}
         >
-          {tab.label}
+          {label}
         </Text>
       </Animated.View>
     </TouchableOpacity>
@@ -116,13 +113,24 @@ function TabBarItem({
 
 export default function TabBar({ currentRoute, onTabPress }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const { t, palette } = useAppSettings();
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom || Theme.spacing.sm }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: palette.white,
+          borderTopColor: palette.grayBorder,
+          paddingBottom: insets.bottom || Theme.spacing.sm,
+        },
+      ]}
+    >
       {tabs.map((tab) => (
         <TabBarItem
           key={tab.name}
           tab={tab}
+          label={t(tab.labelKey)}
           isActive={currentRoute === tab.name}
           onPress={() => onTabPress(tab.name)}
         />
@@ -134,9 +142,7 @@ export default function TabBar({ currentRoute, onTabPress }: TabBarProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
     borderTopWidth: 1,
-    borderTopColor: Colors.grayBorder,
     alignItems: 'flex-end',
     paddingTop: Theme.spacing.sm,
   },
@@ -148,31 +154,24 @@ const styles = StyleSheet.create({
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 3,
+    paddingVertical: 4,
+    position: 'relative',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: -6,
+    width: 20,
+    height: 2,
+    backgroundColor: Colors.warning,
+    borderRadius: 1,
   },
   tabLabel: {
-    fontSize: Theme.fontSize.xs,
-    color: Colors.tabInactive,
-    fontWeight: Theme.fontWeight.medium,
+    fontSize: 10,
+    fontWeight: Theme.fontWeight.semibold,
+    letterSpacing: 0.5,
   },
   tabLabelActive: {
     color: Colors.primary,
-    fontWeight: Theme.fontWeight.semibold,
-  },
-  scanTab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-  },
-  scanButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: Colors.primaryLight,
   },
 });

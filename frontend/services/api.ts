@@ -1,5 +1,6 @@
 import { Config } from '@/constants/config';
 import { Medicine, SearchResponse } from '@/types';
+import { getDeviceId, getDeviceInfo } from './deviceIdentity';
 
 class ApiError extends Error {
   status: number;
@@ -8,6 +9,25 @@ class ApiError extends Error {
     this.status = status;
   }
 }
+
+export type HistoryType = 'scan' | 'search';
+
+export type HistoryEvent = {
+  _id: string;
+  deviceId: string;
+  type: HistoryType;
+  medicineId: Medicine | string | null;
+  query: string | null;
+  matchedBrand: string | null;
+  timestamp: string;
+};
+
+export type SavedEntry = {
+  _id: string;
+  deviceId: string;
+  medicineId: Medicine | string;
+  savedAt: string;
+};
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const controller = new AbortController();
@@ -18,6 +38,7 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        'X-Device-Id': getDeviceId(),
         ...(init?.headers || {}),
       },
     });
@@ -49,6 +70,50 @@ export const Api = {
     return request<Medicine[]>(`/api/medicines${qs}`);
   },
   getMedicineById: (id: string) => request<Medicine>(`/api/medicines/${id}`),
+
+  registerDevice: () => {
+    const info = getDeviceInfo();
+    return request<any>('/api/devices/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        deviceId: info.deviceId,
+        platform: info.platform,
+        osVersion: info.osVersion,
+        appVersion: info.appVersion,
+        model: info.model,
+      }),
+    });
+  },
+
+  logHistory: (payload: {
+    type: HistoryType;
+    medicineId?: string | null;
+    query?: string | null;
+    matchedBrand?: string | null;
+  }) =>
+    request<HistoryEvent>('/api/history', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getHistory: (opts: { limit?: number; type?: HistoryType } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.limit) params.set('limit', String(opts.limit));
+    if (opts.type) params.set('type', opts.type);
+    const qs = params.toString();
+    return request<HistoryEvent[]>(`/api/history${qs ? `?${qs}` : ''}`);
+  },
+
+  saveMedicine: (medicineId: string) =>
+    request<SavedEntry>('/api/saved', {
+      method: 'POST',
+      body: JSON.stringify({ medicineId }),
+    }),
+
+  unsaveMedicine: (medicineId: string) =>
+    request<{ ok: true }>(`/api/saved/${medicineId}`, { method: 'DELETE' }),
+
+  getSaved: () => request<SavedEntry[]>('/api/saved'),
 };
 
 export { ApiError };

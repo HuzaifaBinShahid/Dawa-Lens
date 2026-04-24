@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { AppSettingsProvider, useAppSettings } from '@/contexts/AppSettingsContext';
 
-export default function RootLayout() {
+SplashScreen.hideAsync().catch(() => {});
+
+function Shell() {
+  const { isDark } = useAppSettings();
+
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <StatusBar style="auto" />
+    <>
+      <StatusBar style={isDark ? 'light' : 'auto'} />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -15,21 +25,26 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="scan"
-          options={{ animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="search"
-          options={{ animation: 'slide_from_bottom' }}
-        />
         <Stack.Screen
           name="medicine/[id]"
           options={{ animation: 'slide_from_right' }}
         />
       </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <AppSettingsProvider>
+        <Shell />
+      </AppSettingsProvider>
     </GestureHandlerRootView>
   );
 }

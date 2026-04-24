@@ -1,138 +1,181 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
 import Header from '@/components/common/Header';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
 
-type SettingsRowProps = {
+type RowProps = {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  onPress?: () => void;
   rightElement?: React.ReactNode;
   delay: number;
 };
 
-function SettingsRow({ icon, title, onPress, rightElement, delay }: SettingsRowProps) {
-  const style = useAnimatedEntry(delay, 'slideLeft');
+export default function SettingsScreen() {
+  const { t, palette, colorScheme, locale, setColorScheme, setLocale } =
+    useAppSettings();
+  const disclaimerStyle = useAnimatedEntry(500, 'fadeSlideUp');
+  const versionStyle = useAnimatedEntry(700, 'fadeIn');
 
-  return (
-    <Animated.View style={style}>
-      <TouchableOpacity
-        style={styles.row}
-        onPress={onPress}
-        activeOpacity={0.7}
-        disabled={!onPress}
-      >
-        <View style={styles.rowLeft}>
-          <Ionicons name={icon} size={22} color={Colors.primary} />
-          <Text style={styles.rowTitle}>{title}</Text>
+  const handleLocale = (next: 'en' | 'ur') => {
+    if (next === locale) return;
+    setLocale(next);
+    if (next === 'ur') {
+      Alert.alert(t('settings.restart.title'), t('settings.restart.body'), [
+        { text: t('settings.restart.ok') },
+      ]);
+    }
+  };
+
+  const Row = ({ icon, title, rightElement, delay }: RowProps) => {
+    const style = useAnimatedEntry(delay, 'slideLeft');
+    return (
+      <Animated.View style={style}>
+        <View
+          style={[
+            styles.row,
+            { borderBottomColor: palette.grayLight },
+          ]}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name={icon} size={22} color={Colors.primary} />
+            <Text style={[styles.rowTitle, { color: palette.text }]}>
+              {title}
+            </Text>
+          </View>
+          {rightElement || (
+            <Ionicons name="chevron-forward" size={20} color={palette.textMuted} />
+          )}
         </View>
-        {rightElement || (
-          <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-        )}
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
+      </Animated.View>
+    );
+  };
 
-function LanguageToggle() {
-  const [lang, setLang] = useState<'EN' | 'UR'>('EN');
-
-  return (
-    <View style={styles.langToggle}>
-      <TouchableOpacity
-        style={[styles.langBtn, lang === 'EN' && styles.langBtnActive]}
-        onPress={() => setLang('EN')}
-      >
-        <Text style={[styles.langText, lang === 'EN' && styles.langTextActive]}>
-          EN
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.langBtn, lang === 'UR' && styles.langBtnActive]}
-        onPress={() => setLang('UR')}
-      >
-        <Text style={[styles.langText, lang === 'UR' && styles.langTextActive]}>
-          UR
-        </Text>
-      </TouchableOpacity>
+  const ToggleGroup = <T extends string>({
+    value,
+    options,
+    onChange,
+  }: {
+    value: T;
+    options: { id: T; label: string }[];
+    onChange: (id: T) => void;
+  }) => (
+    <View
+      style={[
+        styles.toggleGroup,
+        { borderColor: Colors.primary },
+      ]}
+    >
+      {options.map((opt) => {
+        const active = opt.id === value;
+        return (
+          <TouchableOpacity
+            key={opt.id}
+            style={[
+              styles.toggleBtn,
+              active && { backgroundColor: Colors.primary },
+            ]}
+            onPress={() => onChange(opt.id)}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                { color: Colors.primary },
+                active && styles.toggleTextActive,
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
-}
-
-export default function SettingsScreen() {
-  const router = useRouter();
-  const disclaimerStyle = useAnimatedEntry(500, 'fadeSlideUp');
-  const signOutStyle = useAnimatedEntry(700, 'fadeSlideUp');
-  const versionStyle = useAnimatedEntry(800, 'fadeIn');
 
   return (
-    <View style={styles.container}>
-      <Header title="Settings" showBack={false} />
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <Header title={t('settings.title')} showBack={false} />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <SettingsRow
-          icon="person-circle-outline"
-          title="Account Settings"
-          onPress={() => {}}
+        <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>
+          {t('settings.section.preferences')}
+        </Text>
+        <Row
+          icon="color-palette-outline"
+          title={t('settings.theme')}
           delay={100}
+          rightElement={
+            <ToggleGroup
+              value={colorScheme}
+              options={[
+                { id: 'light', label: t('settings.theme.light') },
+                { id: 'dark', label: t('settings.theme.dark') },
+              ]}
+              onChange={setColorScheme}
+            />
+          }
         />
-        <SettingsRow
-          icon="notifications-outline"
-          title="Notification Preferences"
-          onPress={() => {}}
+        <Row
+          icon="globe-outline"
+          title={t('settings.language')}
           delay={200}
+          rightElement={
+            <ToggleGroup
+              value={locale}
+              options={[
+                { id: 'en', label: 'EN' },
+                { id: 'ur', label: 'اردو' },
+              ]}
+              onChange={handleLocale}
+            />
+          }
         />
 
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <SettingsRow
-          icon="globe-outline"
-          title="Language"
-          rightElement={<LanguageToggle />}
+        <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>
+          {t('settings.section.about')}
+        </Text>
+        <Row
+          icon="shield-checkmark-outline"
+          title={t('settings.privacy')}
           delay={300}
         />
 
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <SettingsRow
-          icon="shield-checkmark-outline"
-          title="Privacy Policy"
-          onPress={() => {}}
-          delay={400}
-        />
-
-        <Animated.View style={[styles.disclaimer, disclaimerStyle]}>
+        <Animated.View
+          style={[
+            styles.disclaimer,
+            {
+              backgroundColor: palette.disclaimerBg,
+              borderColor: palette.grayBorder,
+            },
+            disclaimerStyle,
+          ]}
+        >
           <View style={styles.disclaimerHeader}>
-            <Ionicons name="medical" size={18} color={Colors.text} />
-            <Text style={styles.disclaimerTitle}>MEDICAL DISCLAIMER</Text>
+            <Ionicons name="medical" size={18} color={palette.text} />
+            <Text style={[styles.disclaimerTitle, { color: palette.text }]}>
+              {t('settings.disclaimer.title')}
+            </Text>
           </View>
-          <Text style={styles.disclaimerText}>
-            DawaLens is an AI-powered assistant designed for informational
-            purposes only. It is not a substitute for professional medical
-            advice, diagnosis, or treatment. Always seek the advice of your
-            physician or other qualified health provider with any questions you
-            may have regarding a medical condition. Never disregard professional
-            medical advice or delay in seeking it because of something you have
-            read on this app.
+          <Text style={[styles.disclaimerText, { color: palette.disclaimerText }]}>
+            {t('settings.disclaimer.body')}
           </Text>
         </Animated.View>
 
-        <Animated.View style={[styles.signOutSection, signOutStyle]}>
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={() => router.replace('/(auth)/login')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-        <Animated.Text style={[styles.version, versionStyle]}>
-          DawaLens Version 2.4.0
+        <Animated.Text
+          style={[styles.version, { color: palette.textMuted }, versionStyle]}
+        >
+          {t('settings.version')}
         </Animated.Text>
       </ScrollView>
     </View>
@@ -142,13 +185,11 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   sectionLabel: {
-    fontSize: Theme.fontSize.xs,
-    fontWeight: Theme.fontWeight.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: Theme.fontWeight.bold,
+    letterSpacing: 2,
     paddingHorizontal: Theme.spacing.lg,
     marginTop: Theme.spacing.xl,
     marginBottom: Theme.spacing.sm,
@@ -160,46 +201,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.spacing.lg,
     paddingVertical: Theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grayLight,
+    gap: Theme.spacing.md,
   },
   rowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Theme.spacing.md,
+    flex: 1,
   },
   rowTitle: {
     fontSize: Theme.fontSize.lg,
-    color: Colors.text,
     fontWeight: Theme.fontWeight.medium,
+    flexShrink: 1,
   },
-  langToggle: {
+  toggleGroup: {
     flexDirection: 'row',
     borderRadius: Theme.borderRadius.sm,
     borderWidth: 1,
-    borderColor: Colors.primary,
     overflow: 'hidden',
   },
-  langBtn: {
+  toggleBtn: {
     paddingHorizontal: Theme.spacing.md,
     paddingVertical: Theme.spacing.xs,
+    minWidth: 44,
+    alignItems: 'center',
   },
-  langBtnActive: {
-    backgroundColor: Colors.primary,
-  },
-  langText: {
+  toggleText: {
     fontSize: Theme.fontSize.sm,
     fontWeight: Theme.fontWeight.semibold,
-    color: Colors.primary,
   },
-  langTextActive: {
+  toggleTextActive: {
     color: Colors.white,
   },
   disclaimer: {
     margin: Theme.spacing.lg,
-    backgroundColor: Colors.disclaimerBg,
     borderRadius: Theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.grayBorder,
     padding: Theme.spacing.lg,
   },
   disclaimerHeader: {
@@ -211,37 +248,16 @@ const styles = StyleSheet.create({
   disclaimerTitle: {
     fontSize: Theme.fontSize.sm,
     fontWeight: Theme.fontWeight.bold,
-    color: Colors.text,
     letterSpacing: 0.5,
   },
   disclaimerText: {
     fontSize: Theme.fontSize.sm,
-    color: Colors.disclaimerText,
     lineHeight: 20,
-  },
-  signOutSection: {
-    alignItems: 'center',
-    marginVertical: Theme.spacing.xl,
-  },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.xxl,
-    borderWidth: 1.5,
-    borderColor: Colors.danger,
-    borderRadius: Theme.borderRadius.full,
-  },
-  signOutText: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: Theme.fontWeight.semibold,
-    color: Colors.danger,
   },
   version: {
     textAlign: 'center',
     fontSize: Theme.fontSize.sm,
-    color: Colors.textMuted,
+    marginTop: Theme.spacing.xl,
     marginBottom: Theme.spacing.xxxl,
   },
 });
