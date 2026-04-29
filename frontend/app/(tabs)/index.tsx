@@ -197,11 +197,22 @@ export default function HomeScanScreen() {
         try {
           const result = await Api.searchMedicines(candidate, 5);
           if (result.best) {
-            setMatch(result.best);
-            setSimilar(result.alternates || []);
-            setStatus('matched');
-            setTriedCandidates(tried);
             logScanHistory(result.best, candidate);
+            const altIds = (result.alternates || [])
+              .map((m) => m._id)
+              .filter(Boolean)
+              .join(',');
+            const matched = resolveScanMatch(result.best, candidate).primary;
+            const params = new URLSearchParams();
+            if (altIds) params.set('alternates', altIds);
+            if (matched) params.set('primary', matched);
+            const qs = params.toString();
+            const path = qs
+              ? `/medicine/${result.best._id}?${qs}`
+              : `/medicine/${result.best._id}`;
+            // Reset state immediately so the camera UI is clean when user returns
+            resetState();
+            router.push(path as any);
             return;
           }
           if (result.alternates && result.alternates.length > 0) {

@@ -115,7 +115,10 @@ export default function SearchScreen() {
       matchedBrand: match.matchedByBrand ? match.primary : null,
     }).catch(() => {});
     Keyboard.dismiss();
-    router.push(`/medicine/${m._id}`);
+    const path = match.primary
+      ? `/medicine/${m._id}?primary=${encodeURIComponent(match.primary)}`
+      : `/medicine/${m._id}`;
+    router.push(path as any);
   };
 
   const handleSubmit = () => {

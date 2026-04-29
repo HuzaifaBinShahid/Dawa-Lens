@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "scrape:dvago": "node src/scripts/scrape-dvago.js",
+    "transform:dvago": "node src/scripts/transform-dvago.js"
   },
   "keywords": [
     "medicines",
@@ -22,6 +24,7 @@
     "mongoose": "^8.8.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "playwright": "^1.59.1"
   }
 }

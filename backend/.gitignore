@@ -2,3 +2,13 @@ node_modules/
 .env
 *.log
 .DS_Store
+
+# Scraped + transformed dataset dumps
+data/scraped/
+!data/scraped/**/.gitkeep
+data/exports/
+
+# Local-only scraping pipeline (kept off the repo)
+src/scripts/scrape-*.js
+src/scripts/transform-*.js
+src/scripts/scraper-utils/

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Animated from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
 import { useMedicine } from '@/hooks/useMedicine';
 import Header from '@/components/common/Header';
@@ -29,8 +30,11 @@ type SectionKey =
   | 'products';
 
 export default function MedicineDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, loading, error, refetch } = useMedicine(id);
+  const params = useLocalSearchParams<{
+    id: string;
+    alternates?: string;
+    primary?: string;
+  }>();
   const { t, palette, locale } = useAppSettings();
   const [showUrdu, setShowUrdu] = useState(locale === 'ur');
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
@@ -39,16 +43,55 @@ export default function MedicineDetailScreen() {
   const [saveBusy, setSaveBusy] = useState(false);
   const translateStyle = useAnimatedEntry(100, 'fadeSlideUp');
 
+  // Match-rotation state: when arriving from a scan with multiple matches,
+  // we keep the full ordered list of ids and let the user cycle without
+  // re-navigating.
+  const initialMatchIds = useMemo(() => {
+    const altParam =
+      typeof params.alternates === 'string' ? params.alternates : '';
+    const alts = altParam
+      ? altParam.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    const baseId = typeof params.id === 'string' ? params.id : '';
+    return [baseId, ...alts].filter(Boolean);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [matchIds] = useState<string[]>(initialMatchIds);
+  const [matchIndex, setMatchIndex] = useState(0);
+  const currentId = matchIds[matchIndex] || params.id;
+  const { data, loading, error, refetch } = useMedicine(currentId);
+
+  const initialPrimary =
+    typeof params.primary === 'string' ? params.primary.trim() : '';
+  const primaryName = useMemo(() => {
+    // The matched brand only applies to the originally-tapped result.
+    // When the user cycles to an alternate via the switcher, fall back to
+    // that medicine's first product brand so the headline stays brand-first.
+    if (matchIndex === 0 && initialPrimary) return initialPrimary;
+    const firstBrand = data?.products?.find(
+      (p) => typeof p.brand === 'string' && p.brand.trim().length > 0
+    )?.brand;
+    return firstBrand?.trim() || '';
+  }, [matchIndex, initialPrimary, data]);
+
+  const showMatchSwitcher = matchIds.length > 1;
+  const handleNextMatch = () => {
+    setMatchIndex((idx) => (idx + 1) % matchIds.length);
+    setActiveSection('overview');
+    setSafetyModalOpen(false);
+  };
+
   useEffect(() => {
-    if (!id) return;
+    if (!currentId) return;
     let cancelled = false;
+    setIsSaved(false);
     Api.getSaved()
       .then((items) => {
         if (cancelled) return;
         const match = items.some((s) => {
           const med = s.medicineId;
           const mid = typeof med === 'object' && med ? (med as any)._id : med;
-          return mid === id;
+          return mid === currentId;
         });
         setIsSaved(match);
       })
@@ -56,18 +99,18 @@ export default function MedicineDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [currentId]);
 
   const toggleSave = async () => {
-    if (!id || saveBusy) return;
+    if (!currentId || saveBusy) return;
     setSaveBusy(true);
     const next = !isSaved;
     setIsSaved(next);
     try {
       if (next) {
-        await Api.saveMedicine(id);
+        await Api.saveMedicine(currentId);
       } else {
-        await Api.unsaveMedicine(id);
+        await Api.unsaveMedicine(currentId);
       }
     } catch {
       setIsSaved(!next);
@@ -148,6 +191,53 @@ export default function MedicineDetailScreen() {
         onRightPress={toggleSave}
       />
 
+      {showMatchSwitcher && (
+        <Animated.View
+          key={`switcher-${matchIndex}`}
+          entering={FadeIn.duration(220)}
+          style={[
+            styles.switcher,
+            {
+              backgroundColor: palette.cardBg,
+              borderBottomColor: palette.grayBorder,
+            },
+          ]}
+        >
+          <View style={styles.switcherLeft}>
+            <View style={styles.switcherBadge}>
+              <Text style={styles.switcherBadgeText}>
+                {String(matchIndex + 1).padStart(2, '0')}/
+                {String(matchIds.length).padStart(2, '0')}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switcherEyebrow}>
+                {t('medicine.switcher.eyebrow')}
+              </Text>
+              <Text
+                style={[
+                  styles.switcherTitle,
+                  { color: palette.text },
+                ]}
+                numberOfLines={1}
+              >
+                {primaryName || data.drug_name}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.switcherBtn}
+            onPress={handleNextMatch}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.switcherBtnText}>
+              {t('medicine.switcher.next')}
+            </Text>
+            <Ionicons name="arrow-forward" size={14} color={Colors.white} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -168,6 +258,7 @@ export default function MedicineDetailScreen() {
         <View style={styles.headerWrap}>
           <MedicineHeader
             drugName={data.drug_name}
+            primaryName={primaryName}
             category={data.category}
             content={data.content}
             forms={data.forms}
@@ -326,6 +417,63 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: Theme.spacing.xxxl,
+  },
+  switcher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.md,
+    borderBottomWidth: 1,
+  },
+  switcherLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+  },
+  switcherBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.warning,
+    backgroundColor: Colors.warningBg,
+    minWidth: 56,
+    alignItems: 'center',
+  },
+  switcherBadgeText: {
+    fontSize: 11,
+    fontWeight: Theme.fontWeight.bold,
+    letterSpacing: 1.5,
+    color: Colors.warning,
+  },
+  switcherEyebrow: {
+    fontSize: 9,
+    fontWeight: Theme.fontWeight.bold,
+    letterSpacing: 2,
+    color: Colors.warning,
+    marginBottom: 2,
+  },
+  switcherTitle: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: Theme.fontWeight.bold,
+    letterSpacing: -0.2,
+  },
+  switcherBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: 10,
+    borderRadius: Theme.borderRadius.full,
+  },
+  switcherBtnText: {
+    color: Colors.white,
+    fontSize: Theme.fontSize.sm,
+    fontWeight: Theme.fontWeight.bold,
+    letterSpacing: 0.3,
   },
   translateRow: {
     alignItems: 'flex-end',

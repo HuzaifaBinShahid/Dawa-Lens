@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 export type TabItem<T extends string = string> = {
   key: T;
@@ -26,9 +27,9 @@ export default function SectionTabs<T extends string = string>({
   active,
   onChange,
 }: SectionTabsProps<T>) {
+  const { palette } = useAppSettings();
   const scrollRef = useRef<ScrollView>(null);
   const tabPositions = useRef<Record<string, { x: number; w: number }>>({});
-  const activeIndex = tabs.findIndex((t) => t.key === active);
 
   useEffect(() => {
     const pos = tabPositions.current[active];
@@ -44,100 +45,77 @@ export default function SectionTabs<T extends string = string>({
   };
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { backgroundColor: palette.white }]}>
       <ScrollView
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {tabs.map((tab, i) => {
+        {tabs.map((tab) => {
           const isActive = tab.key === active;
           return (
             <TouchableOpacity
               key={tab.key}
-              style={styles.tab}
+              style={[
+                styles.tab,
+                {
+                  backgroundColor: isActive
+                    ? Colors.primaryLight
+                    : palette.cardBg,
+                  borderColor: isActive ? Colors.primary : palette.grayBorder,
+                },
+              ]}
               onPress={() => onChange(tab.key)}
               onLayout={onTabLayout(tab.key)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <Text style={styles.index}>
-                {String(i + 1).padStart(2, '0')}
-              </Text>
-              <Text style={[styles.label, isActive && styles.labelActive]}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: isActive ? Colors.primary : palette.textSecondary },
+                  isActive && styles.labelActive,
+                ]}
+                numberOfLines={1}
+              >
                 {tab.label}
               </Text>
-              {isActive && <View style={styles.underline} />}
             </TouchableOpacity>
           );
         })}
       </ScrollView>
-      <View style={styles.rule} />
-      <View style={styles.progressRow}>
-        <Text style={styles.progressText}>
-          {String(activeIndex + 1).padStart(2, '0')}
-          <Text style={styles.progressSep}> / </Text>
-          {String(tabs.length).padStart(2, '0')}
-        </Text>
-      </View>
+      <View style={[styles.rule, { backgroundColor: palette.grayBorder }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: Colors.white,
+    paddingBottom: Theme.spacing.sm,
   },
   scroll: {
     paddingHorizontal: Theme.spacing.lg,
     paddingTop: Theme.spacing.sm,
-    gap: Theme.spacing.xl,
+    paddingBottom: Theme.spacing.sm,
+    gap: 8,
   },
   tab: {
-    alignItems: 'flex-start',
-    paddingBottom: Theme.spacing.sm,
-    position: 'relative',
-    minWidth: 48,
-  },
-  index: {
-    fontSize: 10,
-    fontWeight: Theme.fontWeight.bold,
-    letterSpacing: 1.5,
-    color: Colors.textMuted,
-    marginBottom: 2,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: 9,
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   label: {
-    fontSize: Theme.fontSize.md,
+    fontSize: Theme.fontSize.sm,
     fontWeight: Theme.fontWeight.semibold,
-    color: Colors.textSecondary,
-    letterSpacing: -0.2,
+    letterSpacing: 0.2,
   },
   labelActive: {
-    color: Colors.text,
-  },
-  underline: {
-    position: 'absolute',
-    left: 0,
-    bottom: 0,
-    height: 2,
-    width: '100%',
-    backgroundColor: Colors.warning,
+    fontWeight: Theme.fontWeight.bold,
   },
   rule: {
     height: 1,
-    backgroundColor: Colors.grayBorder,
-  },
-  progressRow: {
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.sm,
-  },
-  progressText: {
-    fontSize: 10,
-    fontWeight: Theme.fontWeight.bold,
-    letterSpacing: 2,
-    color: Colors.text,
-  },
-  progressSep: {
-    color: Colors.textMuted,
   },
 });

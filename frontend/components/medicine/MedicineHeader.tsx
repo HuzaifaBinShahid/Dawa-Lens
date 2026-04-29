@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
 import { Colors } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 type MedicineHeaderProps = {
   drugName: string;
+  primaryName?: string;
   category?: string;
   content?: string;
   forms: string[];
@@ -15,12 +17,21 @@ type MedicineHeaderProps = {
 
 export default function MedicineHeader({
   drugName,
+  primaryName,
   category,
   content,
   forms,
 }: MedicineHeaderProps) {
+  const { palette } = useAppSettings();
   const imageStyle = useAnimatedEntry(100, 'fadeSlideUp');
   const infoStyle = useAnimatedEntry(300, 'fadeSlideUp');
+
+  const headline =
+    primaryName && primaryName.trim().length > 0 ? primaryName.trim() : drugName;
+  const showSaltLine =
+    !!primaryName &&
+    primaryName.trim().length > 0 &&
+    primaryName.trim().toLowerCase() !== drugName.trim().toLowerCase();
 
   return (
     <View style={styles.container}>
@@ -34,9 +45,24 @@ export default function MedicineHeader({
         </View>
       </Animated.View>
       <Animated.View style={infoStyle}>
-        <Text style={styles.name}>{drugName}</Text>
+        <Text style={[styles.name, { color: palette.text }]} numberOfLines={2}>
+          {headline}
+        </Text>
+        {showSaltLine && (
+          <Text
+            style={[styles.saltLine, { color: palette.textSecondary }]}
+            numberOfLines={2}
+          >
+            <Text style={styles.saltLabel}>Salt </Text>
+            <Text style={styles.saltValue}>{drugName}</Text>
+          </Text>
+        )}
         {!!category && <Text style={styles.category}>{category}</Text>}
-        {!!content && <Text style={styles.content}>{content}</Text>}
+        {!!content && (
+          <Text style={[styles.content, { color: palette.textSecondary }]}>
+            {content}
+          </Text>
+        )}
         {forms && forms.length > 0 && (
           <ScrollView
             horizontal
@@ -87,9 +113,21 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: Theme.fontSize.xxxl,
+    fontWeight: Theme.fontWeight.extrabold,
+    letterSpacing: -0.6,
+    marginBottom: 6,
+  },
+  saltLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Theme.spacing.sm,
+  },
+  saltLabel: {
+    fontWeight: Theme.fontWeight.medium,
+  },
+  saltValue: {
+    color: Colors.primary,
     fontWeight: Theme.fontWeight.bold,
-    color: Colors.text,
-    marginBottom: 4,
   },
   category: {
     fontSize: Theme.fontSize.md,
@@ -99,7 +137,6 @@ const styles = StyleSheet.create({
   },
   content: {
     fontSize: Theme.fontSize.sm,
-    color: Colors.textSecondary,
     lineHeight: 20,
     marginBottom: Theme.spacing.md,
   },

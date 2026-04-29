@@ -105,7 +105,7 @@ const en: Dict = {
   'settings.restart.ok': 'OK',
 
   // Medicine detail
-  'medicine.title': 'Medicine Details',
+  'medicine.title': 'Medicine',
   'medicine.translate.toUrdu': 'Translate to Urdu',
   'medicine.translate.toEnglish': 'Translate to English',
   'medicine.tab.overview': 'Overview',
@@ -117,6 +117,8 @@ const en: Dict = {
   'medicine.error.title': 'Unable to load',
   'medicine.error.body': 'Medicine not found.',
   'medicine.retry': 'Retry',
+  'medicine.switcher.eyebrow': 'SCAN MATCH',
+  'medicine.switcher.next': 'Next',
 
   // Common
   'common.close': 'Close',
@@ -231,6 +233,8 @@ const ur: Dict = {
   'medicine.error.title': 'لوڈ نہیں ہو سکا',
   'medicine.error.body': 'دوا نہیں ملی۔',
   'medicine.retry': 'دوبارہ کوشش',
+  'medicine.switcher.eyebrow': 'اسکین کا نتیجہ',
+  'medicine.switcher.next': 'اگلا',
 
   'common.close': 'بند کریں',
   'common.ok': 'ٹھیک ہے',

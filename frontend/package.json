@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start --dev-client",
+    "dev": "adb reverse tcp:8081 tcp:8081 && adb reverse tcp:3000 tcp:3000 && expo start --dev-client --offline",
+    "reverse": "adb reverse tcp:8081 tcp:8081 && adb reverse tcp:3000 tcp:3000",
+    "start": "expo start --dev-client --offline",
+    "start:online": "expo start --dev-client",
     "start:expo-go": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
