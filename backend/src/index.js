@@ -7,6 +7,7 @@ const medicinesRouter = require('./routes/medicines');
 const devicesRouter = require('./routes/devices');
 const historyRouter = require('./routes/history');
 const savedRouter = require('./routes/saved');
+const trackersRouter = require('./routes/trackers');
 const deviceContext = require('./middleware/deviceContext');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use('/api/medicines', medicinesRouter);
 app.use('/api/devices', devicesRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/saved', savedRouter);
+app.use('/api/trackers', trackersRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

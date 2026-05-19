@@ -63,6 +63,65 @@ router.get('/search', async (req, res) => {
   }
 });
 
+router.post('/extract', async (req, res) => {
+  try {
+    const { raw_text } = req.body;
+    if (!raw_text) {
+      return res.status(400).json({ error: 'raw_text is required' });
+    }
+
+    // Call Ollama for NER
+    const prompt = `You are a medicine label parser. From the following text extracted from a medicine box, identify ONLY the brand/trade name of the medicine. 
+
+Text: "${raw_text}"
+
+Rules:
+- Return ONLY the brand name (e.g., "Augmentin", "Panadol", "Brufen")
+- Do NOT include: salt names, dosages (mg/ml), manufacturer names, instructions
+- If multiple brand names exist, return the most prominent one
+- Return ONLY the name, no explanation
+
+Brand name:`;
+
+    let llmName = null;
+    try {
+      const response = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'medgemma:4b', // Or your chosen model
+          prompt: prompt,
+          stream: false
+        }),
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        llmName = data.response.trim();
+      } else {
+        console.warn(`Ollama returned error: ${response.status}`);
+      }
+    } catch (ollamaError) {
+       console.warn(`Ollama request failed: ${ollamaError.message}`);
+       // Fall back gracefully
+    }
+
+    // Search logic using either LLM extracted name or raw text as fallback
+    const searchTerm = llmName || raw_text;
+    const searchResult = await tieredSearch(searchTerm, { limit: 5 });
+
+    res.json({
+        extracted_name: llmName,
+        used_llm: !!llmName,
+        result: searchResult
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { q, limit = 20, skip = 0 } = req.query;
