@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import CapsuleSplash from '@/components/splash/CapsuleSplash';
 import { Api } from '@/services/api';
 import { ensureRegistered } from '@/services/deviceIdentity';
+import { loadPreferences } from '@/services/preferences';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -13,7 +14,12 @@ export default function SplashScreen() {
   }, []);
 
   const handleComplete = useCallback(() => {
-    router.replace('/(tabs)');
+    const prefs = loadPreferences();
+    if (prefs.onboardingComplete) {
+      router.replace('/(tabs)/home');
+    } else {
+      router.replace('/onboarding');
+    }
   }, [router]);
 
   return (

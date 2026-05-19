@@ -70,3 +70,8 @@ export const recognizeMedicineText = async (imageUri: string): Promise<string[]>
   const blocks = (result.blocks || []) as Block[];
   return extractMedicineCandidates(blocks);
 };
+
+export const getRawMedicineText = async (imageUri: string): Promise<string> => {
+  const result = await TextRecognition.recognize(imageUri);
+  return result.text || '';
+};

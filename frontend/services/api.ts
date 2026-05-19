@@ -1,5 +1,12 @@
 import { Config } from '@/constants/config';
 import { Medicine, SearchResponse } from '@/types';
+import type {
+  Tracker,
+  ScheduleResponse,
+  AdherenceResponse,
+  TimeLabel,
+  IntakeStatus,
+} from '@/types/tracker';
 import { getDeviceId, getDeviceInfo } from './deviceIdentity';
 
 class ApiError extends Error {
@@ -61,6 +68,11 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 };
 
 export const Api = {
+  extractMedicine: (raw_text: string) =>
+    request<any>('/api/medicines/extract', {
+      method: 'POST',
+      body: JSON.stringify({ raw_text }),
+    }),
   searchMedicines: (q: string, limit = 5) =>
     request<SearchResponse>(
       `/api/medicines/search?q=${encodeURIComponent(q)}&limit=${limit}`
@@ -114,6 +126,52 @@ export const Api = {
     request<{ ok: true }>(`/api/saved/${medicineId}`, { method: 'DELETE' }),
 
   getSaved: () => request<SavedEntry[]>('/api/saved'),
+
+  tracker: {
+    create: (payload: {
+      medicineId: string;
+      medicineName?: string;
+      dosage: { amount: number; unit: string };
+      frequency: { type: 'daily' | 'weekly'; daysOfWeek?: number[] };
+      timesOfDay: { label: TimeLabel; hour: number; minute: number }[];
+      tagColor?: string;
+      notes?: string;
+      startDate?: string;
+      endDate?: string | null;
+    }) =>
+      request<Tracker>('/api/trackers', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    list: () => request<Tracker[]>('/api/trackers'),
+    update: (id: string, payload: Partial<Tracker>) =>
+      request<Tracker>(`/api/trackers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    remove: (id: string) =>
+      request<{ ok: true }>(`/api/trackers/${id}`, { method: 'DELETE' }),
+    getSchedule: (date?: string) => {
+      const qs = date ? `?date=${date}` : '';
+      return request<ScheduleResponse>(`/api/trackers/schedule${qs}`);
+    },
+    logIntake: (
+      id: string,
+      payload: {
+        scheduledDate: string;
+        timeLabel: TimeLabel;
+        status: IntakeStatus;
+        scheduledHour?: number;
+        scheduledMinute?: number;
+      }
+    ) =>
+      request<any>(`/api/trackers/${id}/intake`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    getAdherence: (days = 7) =>
+      request<AdherenceResponse>(`/api/trackers/adherence?days=${days}`),
+  },
 };
 
 export { ApiError };

@@ -8,11 +8,13 @@ export type Locale = 'en' | 'ur';
 export type Preferences = {
   colorScheme: ColorScheme;
   locale: Locale;
+  onboardingComplete: boolean;
 };
 
 const DEFAULTS: Preferences = {
   colorScheme: 'light',
   locale: 'en',
+  onboardingComplete: false,
 };
 
 const getFile = () => new File(Paths.document, FILE_NAME);
@@ -28,6 +30,7 @@ export const loadPreferences = (): Preferences => {
       colorScheme:
         parsed.colorScheme === 'dark' ? 'dark' : DEFAULTS.colorScheme,
       locale: parsed.locale === 'ur' ? 'ur' : DEFAULTS.locale,
+      onboardingComplete: parsed.onboardingComplete === true,
     };
   } catch {
     return { ...DEFAULTS };

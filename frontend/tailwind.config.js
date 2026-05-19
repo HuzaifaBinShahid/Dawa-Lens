@@ -1,0 +1,83 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './app/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './contexts/**/*.{ts,tsx}',
+    './hooks/**/*.{ts,tsx}',
+  ],
+  presets: [require('nativewind/preset')],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          DEFAULT: '#005FB8',
+          50: '#F0F6FC',
+          100: '#E3EEFA',
+          200: '#C1DAF2',
+          300: '#8FBDE6',
+          400: '#5798D6',
+          500: '#2D7FCC',
+          600: '#005FB8',
+          700: '#00498E',
+          800: '#003A72',
+          900: '#002F5C',
+          fab: '#005BC4',
+          fabGlow: 'rgba(0, 91, 196, 0.75)',
+        },
+        ink: {
+          DEFAULT: '#1E293B',
+          muted: '#424754',
+          subtle: '#64748B',
+          faint: '#94A3B8',
+        },
+        surface: {
+          DEFAULT: '#FFFFFF',
+          card: '#F8FAFC',
+          input: '#F8FAFC',
+          border: '#E2E8F0',
+          divider: '#F1F5F9',
+        },
+        accent: {
+          success: '#16A34A',
+          danger: '#DC2626',
+          dangerBg: '#FEE2E2',
+          warningBg: '#E3EEFA',
+        },
+        scan: '#0A1530',
+      },
+      spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        '2xl': '24px',
+        '3xl': '32px',
+      },
+      borderRadius: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        '2xl': '28px',
+      },
+      fontSize: {
+        '2xs': '10px',
+        xs: '12px',
+        sm: '14px',
+        base: '16px',
+        lg: '18px',
+        xl: '22px',
+        '2xl': '28px',
+        '3xl': '34px',
+      },
+      fontFamily: {
+        sans: ['System'],
+      },
+    },
+  },
+  plugins: [],
+};

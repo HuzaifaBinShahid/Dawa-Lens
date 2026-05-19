@@ -1,39 +1,17 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Slot, usePathname, useRouter } from 'expo-router';
-import TabBar from '@/components/common/TabBar';
+import { View } from 'react-native';
+import { Slot } from 'expo-router';
+import BottomNav from '@/components/common/BottomNav';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 export default function TabsLayout() {
-  const pathname = usePathname();
-  const router = useRouter();
   const { palette } = useAppSettings();
-
-  const currentRoute = pathname === '/' ? 'index' : pathname.replace('/', '');
-
-  const handleTabPress = (name: string) => {
-    if (name === 'index') {
-      router.replace('/(tabs)');
-    } else {
-      router.replace(`/(tabs)/${name}` as any);
-    }
-  };
-
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.content}>
+    <View className="flex-1" style={{ backgroundColor: palette.background }}>
+      <View className="flex-1">
         <Slot />
       </View>
-      <TabBar currentRoute={currentRoute} onTabPress={handleTabPress} />
+      <BottomNav />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-});
