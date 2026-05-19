@@ -7,6 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node src/scripts/seed.js",
+    "merge:drugs-pictures": "node src/scripts/merge-drugs-pictures.js",
     "scrape:dvago": "node src/scripts/scrape-dvago.js",
     "transform:dvago": "node src/scripts/transform-dvago.js"
   },

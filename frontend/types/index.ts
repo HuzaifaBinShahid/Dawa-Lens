@@ -29,6 +29,9 @@ export type Medicine = {
   pregnancy: string | null;
   lactation: string | null;
   products: Product[];
+  dvago_image?: string | null;
+  dvago_slug?: string | null;
+  dvago_source_url?: string | null;
   _processed_at?: string;
   _source?: string;
 };

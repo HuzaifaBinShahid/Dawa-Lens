@@ -12,3 +12,6 @@ data/exports/
 src/scripts/scrape-*.js
 src/scripts/transform-*.js
 src/scripts/scraper-utils/
+
+# Always track shared utility scripts even if they live alongside scraping ones
+!src/scripts/merge-drugs-pictures.js
