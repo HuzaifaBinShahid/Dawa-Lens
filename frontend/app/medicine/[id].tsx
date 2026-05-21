@@ -5,6 +5,7 @@ import {
   Pressable,
   Text,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -264,6 +265,14 @@ export default function MedicineDetailScreen() {
   const currentId = matchIds[matchIndex] || params.id;
   const { data, loading, error, refetch } = useMedicine(currentId);
 
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => {
+    setImageFailed(false);
+  }, [currentId]);
+
+  const cleanImage = typeof data?.dvago_image === 'string' ? data.dvago_image.trim() : '';
+  const showImage = cleanImage.length > 0 && !imageFailed;
+
   const initialPrimary =
     typeof params.primary === 'string' ? params.primary.trim() : '';
   const primaryName = useMemo(() => {
@@ -470,8 +479,17 @@ export default function MedicineDetailScreen() {
             },
           ]}
         >
-          <View style={{ height: 220, width: '100%' }}>
-            <MedicineBoxIllustration />
+          <View style={{ height: 220, width: '100%', backgroundColor: '#FFFFFF' }}>
+            {showImage ? (
+              <Image
+                source={{ uri: cleanImage }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+                onError={() => setImageFailed(true)}
+              />
+            ) : (
+              <MedicineBoxIllustration />
+            )}
           </View>
           <View className="px-5 pb-5 pt-4">
             <View className="flex-row items-start justify-between gap-3">

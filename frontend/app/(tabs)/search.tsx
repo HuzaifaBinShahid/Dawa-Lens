@@ -6,6 +6,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -117,11 +118,15 @@ function MedicineCard({
   medicine: Medicine;
   onPress: () => void;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const brand = medicine.products?.[0]?.brand || medicine.drug_name;
   const mfr = medicine.products?.[0]?.manufacturer || medicine.category || '';
   const formRaw = medicine.forms?.[0] || '';
   const form = resolveFormLabel(formRaw);
   const indication = medicine.indications?.[0] || medicine.category || '';
+
+  const cleanImage = typeof medicine.dvago_image === 'string' ? medicine.dvago_image.trim() : '';
+  const showImage = cleanImage.length > 0 && !imageFailed;
 
   return (
     <Pressable
@@ -141,10 +146,19 @@ function MedicineCard({
     >
       <View className="flex-row items-start gap-3">
         <View
-          className="h-14 w-14 items-center justify-center rounded-2xl"
+          className="h-14 w-14 items-center justify-center overflow-hidden rounded-2xl"
           style={{ backgroundColor: '#E3EEFA' }}
         >
-          <FormIcon form={form} />
+          {showImage ? (
+            <Image
+              source={{ uri: cleanImage }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <FormIcon form={form} />
+          )}
         </View>
         <View className="flex-1">
           <View className="flex-row items-start justify-between">
