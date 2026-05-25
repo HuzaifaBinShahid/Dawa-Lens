@@ -18,7 +18,7 @@ import '../global.css';
 SplashScreen.hideAsync().catch(() => {});
 
 function Shell() {
-  const { isDark } = useAppSettings();
+  const { isDark, isRTL } = useAppSettings();
   const router = useRouter();
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -60,7 +60,10 @@ function Shell() {
   }, [router]);
 
   return (
-    <View className={`flex-1 ${isDark ? 'dark' : ''}`}>
+    <View
+      className={`flex-1 ${isDark ? 'dark' : ''}`}
+      style={{ direction: isRTL ? 'rtl' : 'ltr' }}
+    >
       <StatusBar style={isDark ? 'light' : 'auto'} />
       <Stack
         screenOptions={{

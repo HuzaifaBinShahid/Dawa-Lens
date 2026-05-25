@@ -17,7 +17,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
-import { useT } from '@/contexts/AppSettingsContext';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { Api } from '@/services/api';
 import { getDeviceId } from '@/services/deviceIdentity';
 
@@ -142,7 +142,7 @@ function SettingsRow({
 }
 
 function LogoutButton({ onPress }: { onPress: () => void }) {
-  const t = useT();
+  const { t } = useAppSettings();
   const press = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -195,8 +195,9 @@ function LogoutButton({ onPress }: { onPress: () => void }) {
 }
 
 export default function ProfileScreen() {
-  const t = useT();
+  const { t, locale } = useAppSettings();
   const router = useRouter();
+  const languageValue = locale === 'ur' ? 'اردو' : 'English';
   const [medications, setMedications] = useState(0);
   const [scans, setScans] = useState(0);
   const [conditions, setConditions] = useState(2);
@@ -420,7 +421,7 @@ export default function ProfileScreen() {
           <SettingsRow
             icon="globe-outline"
             label={t('profile.settings.language')}
-            value={t('profile.settings.languageValue')}
+            value={languageValue}
             onPress={goSettings}
           />
           <SettingsRow

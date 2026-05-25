@@ -35,8 +35,8 @@ const TABS: Tab[] = [
 
 const FAB_BG = '#005BC4';
 const FAB_GLOW = '#1976D2';
-const PILL_BG = 'rgba(255, 255, 255, 0.85)';
-const PILL_BORDER = 'rgba(255, 255, 255, 0.4)';
+const PILL_BG = 'rgba(255, 255, 255, 0.97)';
+const PILL_BORDER = 'rgba(255, 255, 255, 0.6)';
 
 const resolveActiveIndex = (pathname: string): number => {
   if (pathname.startsWith('/profile')) return 4;
@@ -183,7 +183,7 @@ export default function BottomNav() {
     >
       <Animated.View
         layout={LinearTransition.springify().damping(18).stiffness(180)}
-        style={{ height: 80 }}
+        style={{ height: 80, direction: 'ltr' }}
         className="flex-row items-center justify-center gap-3 px-3"
       >
         <InactivePill tabs={leftTabs} onSelect={goTo} />

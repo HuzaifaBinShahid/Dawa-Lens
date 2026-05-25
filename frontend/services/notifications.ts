@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import type { Tracker } from '@/types/tracker';
 
 type NotificationsModule = any;
@@ -5,9 +6,14 @@ type NotificationsModule = any;
 let cachedModule: NotificationsModule | null = null;
 let attempted = false;
 
+// expo-notifications was removed from Expo Go in SDK 53+. Calling require on it
+// inside Expo Go logs a red error and only partially works. Detect Expo Go and
+// skip loading entirely — notifications only run in a dev/production build.
+const isExpoGo = Constants.appOwnership === 'expo';
+
 const tryLoadModule = (): NotificationsModule | null => {
   if (cachedModule) return cachedModule;
-  if (attempted) return null;
+  if (attempted || isExpoGo) return null;
   attempted = true;
   try {
     cachedModule = require('expo-notifications');

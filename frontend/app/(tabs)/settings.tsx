@@ -31,11 +31,8 @@ export default function SettingsScreen() {
   const handleLocale = (next: 'en' | 'ur') => {
     if (next === locale) return;
     setLocale(next);
-    if (next === 'ur') {
-      Alert.alert(t('settings.restart.title'), t('settings.restart.body'), [
-        { text: t('settings.restart.ok') },
-      ]);
-    }
+    // Layout direction now flips instantly via the `direction` style on the
+    // root view — no app restart required.
   };
 
   const Row = ({ icon, title, rightElement, delay }: RowProps) => {

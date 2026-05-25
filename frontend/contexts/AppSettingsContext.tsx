@@ -19,6 +19,18 @@ import {
 } from '@/services/preferences';
 import { translate, isRTL } from '@/services/i18n';
 
+// Keep the NATIVE layout direction permanently LTR so React Native's
+// I18nManager never auto-flips flex layouts based on a persisted flag
+// (which only updates after a full app restart). Visual RTL for Urdu is
+// instead driven by the `direction` style on the root view in app/_layout.tsx,
+// which updates instantly on locale change — no restart required.
+try {
+  I18nManager.allowRTL(false);
+  if (I18nManager.isRTL) {
+    I18nManager.forceRTL(false);
+  }
+} catch {}
+
 type AppSettingsValue = {
   colorScheme: ColorScheme;
   locale: Locale;
@@ -37,17 +49,7 @@ export const AppSettingsProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [prefs, setPrefs] = useState<Preferences>(() => {
-    const initial = loadPreferences();
-    const wantRtl = isRTL(initial.locale);
-    if (I18nManager.isRTL !== wantRtl) {
-      try {
-        I18nManager.allowRTL(wantRtl);
-        I18nManager.forceRTL(wantRtl);
-      } catch {}
-    }
-    return initial;
-  });
+  const [prefs, setPrefs] = useState<Preferences>(() => loadPreferences());
 
   const palette = useMemo(() => getPalette(prefs.colorScheme), [prefs.colorScheme]);
 
@@ -63,13 +65,8 @@ export const AppSettingsProvider = ({
     setPrefs((prev) => {
       const next = { ...prev, locale };
       savePreferences(next);
-      const wantRtl = isRTL(locale);
-      if (I18nManager.isRTL !== wantRtl) {
-        try {
-          I18nManager.allowRTL(wantRtl);
-          I18nManager.forceRTL(wantRtl);
-        } catch {}
-      }
+      // No I18nManager.forceRTL here — direction is handled by the `direction`
+      // style in app/_layout.tsx, which re-renders instantly with this state.
       return next;
     });
   }, []);
