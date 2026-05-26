@@ -151,26 +151,37 @@ function SectionCard({
 
 function BulletRow({ text, dotColor = C.success }: { text: string; dotColor?: string }) {
   return (
-    <View className="mb-1.5 flex-row items-start">
+    <View className="mb-2.5 flex-row items-start">
       <View
-        className="mr-2 mt-2 h-1.5 w-1.5 rounded-full"
+        className="mr-2.5 mt-1.5 h-1.5 w-1.5 rounded-full"
         style={{ backgroundColor: dotColor }}
       />
-      <Text className="flex-1 text-sm leading-5" style={{ color: C.textMuted }}>
+      <Text className="flex-1 text-sm leading-6" style={{ color: C.textMuted }}>
         {text}
       </Text>
     </View>
   );
 }
 
-function SideEffectBlock({ text }: { text: string }) {
+const flattenSideEffects = (list: string[]): string[] => {
+  const out: string[] = [];
+  for (const entry of list) {
+    for (const part of (entry || '').split(',')) {
+      const token = part.trim().replace(/\.$/, '');
+      if (token) out.push(token);
+    }
+  }
+  return out;
+};
+
+function SideEffectChip({ label }: { label: string }) {
   return (
     <View
-      className="mb-2 rounded-2xl px-4 py-3"
-      style={{ backgroundColor: C.dangerBg }}
+      className="mb-2 mr-2 rounded-xl px-3 py-2"
+      style={{ backgroundColor: '#FEE2E2' }}
     >
-      <Text className="text-sm font-semibold leading-5" style={{ color: C.danger }}>
-        {text}
+      <Text className="text-xs font-semibold leading-4" style={{ color: '#B91C1C' }}>
+        {label}
       </Text>
     </View>
   );
@@ -305,20 +316,55 @@ export default function MedicineDetailScreen() {
   }, [data, manufacturer, strength]);
 
   const [similar, setSimilar] = useState<Medicine[]>([]);
+  const [sameSalt, setSameSalt] = useState<Medicine[]>([]);
   useEffect(() => {
     if (!data?.drug_name) return;
     let cancelled = false;
-    Api.searchMedicines(data.drug_name, 4)
+    Api.searchMedicines(data.drug_name, 12)
       .then((r) => {
         if (cancelled) return;
-        const list = (r.alternates || []).filter((m) => m._id !== currentId).slice(0, 3);
-        setSimilar(list);
+        const all: Medicine[] = [];
+        if (r.best) all.push(r.best);
+        for (const m of r.alternates || []) {
+          if (!all.find((x) => x._id === m._id)) all.push(m);
+        }
+        setSameSalt(all);
+        setSimilar(all.filter((m) => m._id !== currentId).slice(0, 3));
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, [data?.drug_name, currentId]);
+
+  const saltProducts = useMemo(() => {
+    const source = sameSalt.length > 0 ? sameSalt : data ? [data] : [];
+    const seen = new Set<string>();
+    const out: {
+      brand: string;
+      manufacturer: string;
+      variants: { form: string; size: string; mrp: string | null }[];
+      medId: string;
+    }[] = [];
+    for (const med of source) {
+      for (const p of med.products || []) {
+        const key = (p.brand || '').toLowerCase().trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        out.push({
+          brand: p.brand,
+          manufacturer: p.manufacturer,
+          variants: (p.variants || []).map((v) => ({
+            form: v.form,
+            size: v.size,
+            mrp: v.mrp,
+          })),
+          medId: med._id,
+        });
+      }
+    }
+    return out;
+  }, [sameSalt, data]);
 
   useEffect(() => {
     if (!currentId) return;
@@ -528,23 +574,13 @@ export default function MedicineDetailScreen() {
               title="Active Ingredients"
               delay={0}
             >
-              <View
-                className="flex-row items-center justify-between border-b py-2"
-                style={{ borderBottomColor: C.divider }}
-              >
-                <Text className="text-sm" style={{ color: C.textMuted }}>
-                  {data.drug_name}
+              <Text className="text-base font-bold" style={{ color: C.text }}>
+                {data.drug_name}
+              </Text>
+              {!!data.content && (
+                <Text className="mt-2 text-sm leading-5" style={{ color: C.textMuted }}>
+                  {data.content}
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: C.text }}>
-                  {strength || data.content || ''}
-                </Text>
-              </View>
-              {data.content && data.content.includes(',') && (
-                <View className="flex-row items-center justify-between py-2">
-                  <Text className="text-sm" style={{ color: C.textMuted }}>
-                    {data.content.split(',').slice(1).join(',').trim()}
-                  </Text>
-                </View>
               )}
             </SectionCard>
 
@@ -657,9 +693,13 @@ export default function MedicineDetailScreen() {
                 title="Side Effects"
                 delay={0}
               >
-                {data.side_effects.slice(0, 12).map((s, i) => (
-                  <SideEffectBlock key={i} text={s} />
-                ))}
+                <View className="flex-row flex-wrap">
+                  {flattenSideEffects(data.side_effects)
+                    .slice(0, 30)
+                    .map((s, i) => (
+                      <SideEffectChip key={i} label={s} />
+                    ))}
+                </View>
               </SectionCard>
             ) : (
               <EmptyState label={t('medicine.empty.section')} />
@@ -669,7 +709,7 @@ export default function MedicineDetailScreen() {
 
         {activeTab === 'products' && (
           <Animated.View entering={FadeIn.duration(220)}>
-            {data.products && data.products.length > 0 ? (
+            {saltProducts.length > 0 ? (
               <SectionCard
                 icon="cube"
                 iconBg="#EDE9FE"
@@ -677,9 +717,14 @@ export default function MedicineDetailScreen() {
                 title="Available Products"
                 delay={0}
               >
-                {data.products.slice(0, 8).map((p, i) => (
-                  <View
+                {saltProducts.slice(0, 20).map((p, i) => (
+                  <Pressable
                     key={`${p.brand}-${i}`}
+                    onPress={() => {
+                      if (p.medId && p.medId !== currentId) {
+                        router.push(`/medicine/${p.medId}` as any);
+                      }
+                    }}
                     className="border-b py-3"
                     style={{ borderBottomColor: C.divider }}
                   >
@@ -691,7 +736,7 @@ export default function MedicineDetailScreen() {
                         {p.manufacturer}
                       </Text>
                     )}
-                    {p.variants && p.variants.length > 0 && (
+                    {p.variants.length > 0 && (
                       <View className="mt-1.5 flex-row flex-wrap">
                         {p.variants.slice(0, 4).map((v, vi) => (
                           <View
@@ -711,7 +756,7 @@ export default function MedicineDetailScreen() {
                         ))}
                       </View>
                     )}
-                  </View>
+                  </Pressable>
                 ))}
               </SectionCard>
             ) : (

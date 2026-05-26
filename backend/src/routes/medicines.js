@@ -8,7 +8,7 @@ const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const tieredSearch = async (q, { limit = 5 } = {}) => {
   const term = (q || '').trim();
-  if (!term) return { best: null, alternates: [] };
+  if (!term) return { best: null, alternates: [], matchType: 'none' };
 
   const exact = await Medicine.findOne({
     $or: [{ drug_name: term }, { 'products.brand': term }],
@@ -19,22 +19,23 @@ const tieredSearch = async (q, { limit = 5 } = {}) => {
   if (exact) {
     const siblings = await Medicine.find({
       _id: { $ne: exact._id },
-      drug_name: { $regex: `^${escapeRegex(term)}`, $options: 'i' },
+      drug_name: { $regex: `^${escapeRegex(exact.drug_name)}`, $options: 'i' },
     })
       .limit(limit - 1)
       .lean();
-    return { best: exact, alternates: siblings };
+    return { best: exact, alternates: siblings, matchType: 'exact' };
   }
 
+  const prefixRegex = { $regex: `^${escapeRegex(term)}`, $options: 'i' };
   const prefixHits = await Medicine.find({
-    drug_name: { $regex: `^${escapeRegex(term)}`, $options: 'i' },
+    $or: [{ drug_name: prefixRegex }, { 'products.brand': prefixRegex }],
   })
     .limit(limit)
     .lean();
 
   if (prefixHits.length > 0) {
     const [best, ...alternates] = prefixHits;
-    return { best, alternates };
+    return { best, alternates, matchType: 'partial' };
   }
 
   const textHits = await Medicine.find(
@@ -47,10 +48,10 @@ const tieredSearch = async (q, { limit = 5 } = {}) => {
 
   if (textHits.length > 0) {
     const [best, ...alternates] = textHits;
-    return { best, alternates };
+    return { best, alternates, matchType: 'related' };
   }
 
-  return { best: null, alternates: [] };
+  return { best: null, alternates: [], matchType: 'none' };
 };
 
 router.get('/search', async (req, res) => {

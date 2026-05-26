@@ -37,10 +37,10 @@ function TrackerEmpty({ onAdd }: { onAdd: () => void }) {
           <Ionicons name="heart" size={20} color="#DC2626" />
         </View>
       </View>
-      <Text className="text-ink mb-2 text-xl font-bold dark:text-white">
+      <Text className="mb-2 text-xl font-bold" style={{ color: '#1E293B' }}>
         {t('tracker.empty.title')}
       </Text>
-      <Text className="text-ink-muted mb-8 text-center text-sm leading-5">
+      <Text className="mb-8 text-center text-sm leading-5" style={{ color: '#475569' }}>
         {t('tracker.empty.body')}
       </Text>
       <Pressable
@@ -185,7 +185,7 @@ export default function TrackerScreen() {
           <View className="bg-primary-50 h-9 w-9 items-center justify-center rounded-full">
             <Ionicons name="person" size={18} color="#005FB8" />
           </View>
-          <Text className="text-ink text-lg font-bold dark:text-white">
+          <Text className="text-lg font-bold" style={{ color: '#1E293B' }}>
             {t('tracker.title')}
           </Text>
         </View>
@@ -219,10 +219,10 @@ export default function TrackerScreen() {
           className="border-primary-100 mb-4 flex-row items-center justify-between rounded-2xl border bg-white p-4 dark:border-white/10 dark:bg-white/5"
         >
           <View className="flex-1 pr-3">
-            <Text className="text-ink text-base font-bold dark:text-white">
+            <Text className="text-base font-bold" style={{ color: '#1E293B' }}>
               {t('tracker.weeklyAdherence')}
             </Text>
-            <Text className="text-ink-muted mt-1 text-xs leading-4">
+            <Text className="mt-1 text-xs leading-4" style={{ color: '#475569' }}>
               {t('tracker.weeklyAdherence.body')}
             </Text>
           </View>

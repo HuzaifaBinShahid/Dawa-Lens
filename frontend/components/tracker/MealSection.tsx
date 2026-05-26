@@ -27,14 +27,14 @@ export default function MealSection({ label, items, onMark }: Props) {
     <View className="mb-4">
       <View className="mb-2 flex-row items-center gap-2">
         <Ionicons name={meta.icon} size={16} color={meta.tint} />
-        <Text className="text-ink text-sm font-bold dark:text-white">
+        <Text className="text-sm font-bold" style={{ color: '#1E293B' }}>
           {t(`tracker.section.${label}`)}
         </Text>
       </View>
       {items.length === 0 ? (
         <View className="bg-surface-card flex-row items-center gap-2 rounded-2xl p-4 dark:bg-white/5">
           <Ionicons name="calendar-outline" size={18} color="#94A3B8" />
-          <Text className="text-ink-subtle text-sm">
+          <Text className="text-sm" style={{ color: '#64748B' }}>
             {t('tracker.empty.section')}
           </Text>
         </View>

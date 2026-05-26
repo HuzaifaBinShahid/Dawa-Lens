@@ -69,9 +69,13 @@ export default function AdherenceRing({
         style={{ position: 'absolute' }}
         className="items-center justify-center"
       >
-        <Text className="text-primary-600 text-xl font-bold">{percent}%</Text>
+        <Text className="text-xl font-bold" style={{ color: '#005FB8' }}>
+          {percent}%
+        </Text>
         {!!sublabel && (
-          <Text className="text-ink-subtle text-[10px]">{sublabel}</Text>
+          <Text className="text-[10px]" style={{ color: '#64748B' }}>
+            {sublabel}
+          </Text>
         )}
       </View>
     </View>

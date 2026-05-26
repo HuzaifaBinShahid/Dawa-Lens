@@ -8,19 +8,19 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Api } from '@/services/api';
+import type { Medicine } from '@/types';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
-import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
 import { useT } from '@/contexts/AppSettingsContext';
-import { Api } from '@/services/api';
 import { RecentSearches } from '@/services/recentSearches';
-import type { Medicine } from '@/types';
+import { useAnimatedEntry } from '@/hooks/useAnimatedEntry';
+import Syringe from '@/components/svgs/MedicineIcons/Syringe';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import CapsulePill from '@/components/svgs/MedicineIcons/CapsulePill';
 import SyrupBottle from '@/components/svgs/MedicineIcons/SyrupBottle';
 import TabletBlister from '@/components/svgs/MedicineIcons/TabletBlister';
-import Syringe from '@/components/svgs/MedicineIcons/Syringe';
-import CapsulePill from '@/components/svgs/MedicineIcons/CapsulePill';
 
 type FilterKey = 'medicines' | 'symptoms' | 'conditions';
 
@@ -210,6 +210,8 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('medicines');
   const [results, setResults] = useState<Medicine[]>([]);
+  const [matchType, setMatchType] = useState<'exact' | 'partial' | 'related' | 'none' | null>(null);
+  const [searchedTerm, setSearchedTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
 
@@ -232,6 +234,8 @@ export default function SearchScreen() {
     const trimmed = q.trim();
     if (!trimmed) {
       setResults([]);
+      setMatchType(null);
+      setSearchedTerm('');
       return;
     }
     setLoading(true);
@@ -245,9 +249,13 @@ export default function SearchScreen() {
         }
       }
       setResults(list);
+      setMatchType(data.matchType ?? (list.length > 0 ? 'related' : 'none'));
+      setSearchedTerm(trimmed);
       RecentSearches.add(trimmed);
     } catch {
       setResults([]);
+      setMatchType('none');
+      setSearchedTerm(trimmed);
     } finally {
       setLoading(false);
     }
@@ -377,31 +385,54 @@ export default function SearchScreen() {
           <View className="items-center py-10">
             <ActivityIndicator color="#005FB8" />
           </View>
-        ) : (
+        ) : query.trim().length === 0 ? (
           <View className="px-5 pt-5">
             <Text className="mb-3 text-lg font-bold" style={{ color: '#1E293B' }}>
               {t('search.results')}
             </Text>
-            {results.length === 0 && query.trim().length === 0 ? (
-              <Text className="text-sm" style={{ color: '#64748B' }}>
-                {t('search.empty.body')}
-              </Text>
-            ) : results.length === 0 ? (
-              <View className="items-center py-8">
-                <Ionicons name="search-outline" size={48} color="#CBD5E1" />
-                <Text className="mt-3 text-base font-semibold" style={{ color: '#1E293B' }}>
-                  {t('search.noResults.title')}
+            <Text className="text-sm" style={{ color: '#64748B' }}>
+              {t('search.empty.body')}
+            </Text>
+          </View>
+        ) : results.length === 0 ? (
+          <View className="items-center px-5 py-10">
+            <Ionicons name="search-outline" size={48} color="#CBD5E1" />
+            <Text className="mt-3 text-base font-semibold" style={{ color: '#1E293B' }}>
+              {t('search.noResults.title')}
+            </Text>
+            <Text className="mt-1 text-center text-sm" style={{ color: '#64748B' }}>
+              {t('search.noNamed')} "{searchedTerm}"
+            </Text>
+          </View>
+        ) : (
+          <View className="px-5 pt-5">
+            {matchType === 'related' ? (
+              <>
+                <View
+                  className="mb-4 flex-row items-center gap-2.5 rounded-2xl px-4 py-3"
+                  style={{ backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D' }}
+                >
+                  <Ionicons name="information-circle" size={20} color="#B45309" />
+                  <Text className="flex-1 text-sm font-semibold" style={{ color: '#92400E' }}>
+                    {t('search.noNamed')} "{searchedTerm}"
+                  </Text>
+                </View>
+                <Text className="mb-3 text-lg font-bold" style={{ color: '#1E293B' }}>
+                  {t('search.related')}
                 </Text>
-              </View>
+              </>
             ) : (
-              results.map((m) => (
-                <MedicineCard
-                  key={m._id}
-                  medicine={m}
-                  onPress={() => router.push(`/medicine/${m._id}` as any)}
-                />
-              ))
+              <Text className="mb-3 text-lg font-bold" style={{ color: '#1E293B' }}>
+                {t('search.results')}
+              </Text>
             )}
+            {results.map((m) => (
+              <MedicineCard
+                key={m._id}
+                medicine={m}
+                onPress={() => router.push(`/medicine/${m._id}` as any)}
+              />
+            ))}
           </View>
         )}
       </ScrollView>

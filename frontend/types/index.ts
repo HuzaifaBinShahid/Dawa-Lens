@@ -39,6 +39,7 @@ export type Medicine = {
 export type SearchResponse = {
   best: Medicine | null;
   alternates: Medicine[];
+  matchType?: 'exact' | 'partial' | 'related' | 'none';
 };
 
 export type HistoryItem = {

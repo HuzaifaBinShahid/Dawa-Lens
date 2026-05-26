@@ -51,20 +51,14 @@ export default function DayTabs({ selected, onChange }: Props) {
             }
           >
             <Text
-              className={
-                active
-                  ? 'text-[10px] font-bold tracking-wider text-white'
-                  : 'text-ink-subtle text-[10px] font-bold tracking-wider'
-              }
+              className="text-[10px] font-bold tracking-wider"
+              style={{ color: active ? '#FFFFFF' : '#64748B' }}
             >
               {d.label}
             </Text>
             <Text
-              className={
-                active
-                  ? 'text-base font-bold text-white'
-                  : 'text-ink text-base font-bold dark:text-white'
-              }
+              className="text-base font-bold"
+              style={{ color: active ? '#FFFFFF' : '#1E293B' }}
             >
               {d.date}
             </Text>
